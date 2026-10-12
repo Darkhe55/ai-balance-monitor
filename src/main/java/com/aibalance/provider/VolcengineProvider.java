@@ -52,11 +52,10 @@ public final class VolcengineProvider implements BalanceProvider {
             String base = config.getBaseUrl() == null || config.getBaseUrl().isBlank()
                     ? DEFAULT_BASE : config.getBaseUrl().strip().replaceAll("/+$", "");
             Signing s = buildSignedUrl(config.getApiKey().strip(), config.getSecret().strip(), base);
+            // 严格按官方签名示例：请求头仅携带 X-Date 与 Authorization（GET 无 body，
+            // SignedHeaders=host;x-date，不发送未参与签名的 content-type 等头，避免签名校验失败）
             HttpSupport.Response resp = http.get(s.url,
-                    Map.of("X-Date", s.xDate,
-                            "Authorization", s.authorization,
-                            "Content-Type", "application/x-www-form-urlencoded",
-                            "Accept", "application/json"));
+                    Map.of("X-Date", s.xDate, "Authorization", s.authorization));
             HttpSupport.logDiagnostic("volcengine action=QueryBalanceAcct"
                     + " status=" + resp.status() + " body=" + truncate(resp.body()));
             if (resp.status() == 401 || resp.status() == 403) {
@@ -118,11 +117,10 @@ public final class VolcengineProvider implements BalanceProvider {
         }
 
         String bodySha = SignUtil.sha256Hex("");
-        String headersBlock = "content-type:application/x-www-form-urlencoded\n"
-                + "host:" + host + "\n"
-                + "x-content-sha256:" + bodySha + "\n"
+        // 官方签名示例：SignedHeaders=host;x-date，CanonicalHeaders 仅含 host 与 x-date
+        String headersBlock = "host:" + host + "\n"
                 + "x-date:" + xDate;
-        String signedHeaders = "content-type;host;x-content-sha256;x-date";
+        String signedHeaders = "host;x-date";
         String canonicalRequest = "GET\n/\n" + canonicalQuery + "\n" + headersBlock
                 + "\n\n" + signedHeaders + "\n" + bodySha;
         String scope = shortDate + "/" + REGION + "/" + SERVICE + "/request";

@@ -56,7 +56,7 @@ public final class BaiduProvider implements BalanceProvider {
             if (resp.status() == 401 || resp.status() == 403) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.UNAUTHORIZED)
-                        .message("AccessKey/SecretKey 无效或无余额查询权限").build();
+                        .message("AccessKey/SecretKey 无效或无财务只读权限（建议子账号仅授权财务只读 BCE_FINANCE_READ）").build();
             }
             if (resp.status() != 200) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),

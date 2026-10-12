@@ -21,10 +21,10 @@ class VolcengineProviderTest {
         assertTrue(s.url.startsWith("https://billing.volcengineapi.com/?"));
         assertTrue(s.url.contains("Action=QueryBalanceAcct"));
         assertTrue(s.url.contains("Version=2022-01-01"));
-        // HMAC-SHA256 认证头格式
+        // HMAC-SHA256 认证头格式（官方示例：SignedHeaders=host;x-date）
         assertTrue(s.authorization.startsWith("HMAC-SHA256 Credential=test-ak/"));
         assertTrue(s.authorization.contains("/cn-beijing/billing/request"));
-        assertTrue(s.authorization.contains("SignedHeaders=content-type;host;x-content-sha256;x-date"));
+        assertTrue(s.authorization.contains("SignedHeaders=host;x-date"));
         assertTrue(s.authorization.contains("Signature="));
         // X-Date 格式 yyyyMMdd'T'HHmmss'Z'
         assertTrue(s.xDate.matches("\\d{8}T\\d{6}Z"));
