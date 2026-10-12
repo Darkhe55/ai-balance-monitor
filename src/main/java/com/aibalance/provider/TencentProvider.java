@@ -61,7 +61,7 @@ public final class TencentProvider implements BalanceProvider {
             if (resp.status() == 401 || resp.status() == 403) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.UNAUTHORIZED)
-                        .message("SecretId/SecretKey 无效或无余额查询权限（建议 CAM 子用户仅授权计费只读 BillingRead）").build();
+                        .message("SecretId/SecretKey 无效或无余额查询权限（建议 CAM 子用户仅自定义授权 finance:DescribeAccountBalance）").build();
             }
             if (resp.status() != 200) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),

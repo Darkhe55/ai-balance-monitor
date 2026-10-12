@@ -76,7 +76,7 @@ public enum ProviderId {
             "云账户余额 · 官方接口", "火山引擎账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
     TENCENT("腾讯混元", "#006EFF", "https://billing.tencentcloudapi.com",
-            "账号授权方式：填腾讯云 SecretId + SecretKey（腾讯云控制台 → 访问管理 → API 密钥管理创建，SecretId 形如 AKID…）。安全建议：CAM 子用户仅授权计费只读权限（QcloudBillingReadOnlyAccess）。官方接口返回可用余额、现金余额、信用额度、冻结金额、欠费。",
+            "账号授权方式：填腾讯云 SecretId + SecretKey（腾讯云控制台 → 访问管理 → API 密钥管理创建，SecretId 形如 AKID…）。安全建议：CAM 子用户仅自定义授权单接口 finance:DescribeAccountBalance（最小权限），勿用主账号密钥。官方接口返回可用余额、现金余额、信用额度、冻结金额、欠费。",
             "云账户余额 · 官方接口", "腾讯云账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
     BAIDU("百度千帆", "#2932E1", "https://billing.baidubce.com",
