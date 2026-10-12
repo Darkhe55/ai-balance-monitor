@@ -43,8 +43,8 @@
 | MiniMax 海螺（中国站 / 国际站） | **双计费**：Token Plan 订阅（`GET /v1/token_plan/remains`，订阅 Key）；按量付费（`GET /v1/models` 校验，普通 Key，钱包余额无公开 API）。**套餐接口 HTTP 恒 200，业务错误在 `base_resp.status_code`（1004=鉴权失败）** | 套餐：5 小时/周窗口额度百分比与重置时间；按量：Key 有效性 + 速率配额（如实标注无余额接口） |
 | Kimi Coding 套餐 | `GET /coding/v1/usages`（Kimi Code 订阅 Key） | Coding 套餐额度：5 小时速率窗口与周请求池已用/剩余 |
 | 阿里百炼·模型配额 | 官方接口 `GET /api/v1/models/limits`（普通 API Key，需完整业务空间 Base URL） | 各模型请求/用量限流配额（RPM/TPM，非余额） |
-| 阿里云百炼·Token Plan 额度 | 官方 OpenAPI `ListSubscriptionSharedPackages` + `GetSubscriptionSeatDetails`（域名 `modelstudio.cn-beijing.aliyuncs.com`，**ACS3-HMAC-SHA256 签名**，填阿里云 AccessKey ID/Secret） | 各订阅席位/共享包 **Credits 周期总额与剩余额度进度条**、周期起止时间、席位类型与状态；主金额 = 全部 Credits 剩余之和 |
-| 阿里云百炼·账户余额与账单（中国站） | 阿里云官方 SDK（BssOpenApi 2017-12-14）：`QueryAccountBalance` + `QueryAccountBill`；中国站 endpoint `business.aliyuncs.com`，填中国站 AccessKey ID/Secret | 账户余额、可用现金、信控额度 + 当月账单费用明细（账单接口失败不阻断余额展示） |
+| 阿里云百炼·Token Plan 额度 | 官方 OpenAPI `ListSubscriptionSharedPackages` + `GetSubscriptionSeatDetails`（域名 `modelstudio.cn-beijing.aliyuncs.com`，**ACS3-HMAC-SHA256 签名**，填阿里云 AccessKey ID/Secret；RAM 需 `AliyunModelStudioReadOnlyAccess`） | 各订阅席位/共享包 **Credits 周期总额与剩余额度进度条**、周期起止时间、席位类型与状态；主金额 = 全部 Credits 剩余之和 |
+| 阿里云百炼·账户余额与账单（中国站） | 阿里云官方 SDK（BssOpenApi 2017-12-14）：`QueryAccountBalance` + `QueryAccountBill`；中国站 endpoint `business.aliyuncs.com`，填中国站 AccessKey ID/Secret；RAM 需 `AliyunFinanceConsoleReadOnlyAccess` | 账户余额、可用现金、信控额度 + 当月账单费用明细（账单接口失败不阻断余额展示） |
 | 火山方舟 | 费用中心 `QueryBalanceAcct`（`billing.volcengineapi.com`，AK/SK 签名） | 可用余额、现金余额、欠费、冻结、信控额度 |
 | 腾讯混元 | 计费 `DescribeAccountBalance`（`billing.tencentcloudapi.com`，TC3-HMAC-SHA256，SecretId/SecretKey） | 可用余额、现金余额、信用额度、冻结金额、欠费（金额单位为分） |
 | 百度千帆 | `POST /v1/finance/cash/balance`（`billing.baidubce.com`，bce-auth-v1，AK/SK） | 现金余额（元） |
@@ -62,7 +62,7 @@
 | Google Gemini（API Key） | `GET /models?key=…` 校验 Key 有效性 | Key 状态、可用模型数；余额/预算请改用 Cloud 账单入口 |
 | Google Gemini（Cloud 账单） | Cloud Billing Budget API `GET …/budgets`：Base URL 需补全为 `…/v1/billingAccounts/{账单ID}`，凭证填 OAuth 访问令牌（`gcloud auth print-access-token`，约 1 小时有效） | 预算金额与花费 |
 | xAI / Grok | `GET /v1/billing/teams/{team_id}/prepaid/balance`（Management API Key；组织级 Key 需在「附加参数」填 `team_id`） | 预付余额与变动记录 |
-| 阿里云百炼·账户余额与账单（国际站） | 同中国站接口（`QueryAccountBalance` + `QueryAccountBill`），国际站 endpoint `business.ap-southeast-1.aliyuncs.com`，填国际站 AccessKey ID/Secret。**国际站 AK 与国内站不通用**：用中国站 AK 调中国站接口会返回 `InvalidAccessKeyId.NotFound`（HTTP 404） | 账户余额、可用现金、信控额度 + 当月账单费用明细（币种随账号，如 USD） |
+| 阿里云百炼·账户余额与账单（国际站） | 同中国站接口（`QueryAccountBalance` + `QueryAccountBill`），国际站 endpoint `business.ap-southeast-1.aliyuncs.com`，填国际站 AccessKey ID/Secret；RAM 需 `AliyunFinanceConsoleReadOnlyAccess`。**国际站 AK 与国内站不通用**：用中国站 AK 调中国站接口会返回 `InvalidAccessKeyId.NotFound`（HTTP 404） | 账户余额、可用现金、信控额度 + 当月账单费用明细（币种随账号，如 USD） |
 
 ### 中转站 / 网关
 
@@ -202,7 +202,7 @@ ai-balance-monitor/
 账户操作菜单：立即刷新 / 编辑账户 / 启用或停用 / 删除账户；双击卡片也可进入编辑。
 
 **Q：我的智谱 / 通义账户能接入吗？**
-智谱 GLM **可以**：在「智谱 GLM」服务下填写 **Coding Plan 订阅 Key**（普通按量 Key 无法查询套餐额度），Base URL 默认国内 `open.bigmodel.cn`，国际账号填 `https://api.z.ai`。阿里百炼可按三种入口接入：**「阿里百炼·模型配额」**（普通 API Key + 完整业务空间 Base URL `https://{业务空间ID}.cn-beijing.maas.aliyuncs.com`，返回的是模型限流配额非余额）；**「阿里云百炼·Token Plan 额度」**（阿里云 AccessKey ID/Secret，返回 Token Plan 订阅/共享包的 Credits 剩余额度进度条，推荐 RAM 子账号仅授权最小只读权限）；**「阿里云百炼·账户余额与账单（中国站）」/「（国际站）」**（阿里云 AccessKey ID/Secret，推荐 RAM 只读子账号；中国站走 `business.aliyuncs.com`、国际站走 `business.ap-southeast-1.aliyuncs.com`，**两站 AK 互不通用**，返回账户现金/可用余额与当月账单明细）。若你使用 OneAPI/NewAPI 类中转站，也可直接添加「OneAPI / NewAPI 网关」接入；海外厂商入口见上文「海外厂商」表格（OpenAI Admin Key、Gemini Cloud 账单、xAI 等）。
+智谱 GLM **可以**：在「智谱 GLM」服务下填写 **Coding Plan 订阅 Key**（普通按量 Key 无法查询套餐额度），Base URL 默认国内 `open.bigmodel.cn`，国际账号填 `https://api.z.ai`。阿里百炼可按三种入口接入：**「阿里百炼·模型配额」**（普通 API Key + 完整业务空间 Base URL `https://{业务空间ID}.cn-beijing.maas.aliyuncs.com`，返回的是模型限流配额非余额）；**「阿里云百炼·Token Plan 额度」**（阿里云 AccessKey ID/Secret，返回 Token Plan 订阅/共享包的 Credits 剩余额度进度条，RAM 需 `AliyunModelStudioReadOnlyAccess`）；**「阿里云百炼·账户余额与账单（中国站）」/「（国际站）」**（阿里云 AccessKey ID/Secret，RAM 需 `AliyunFinanceConsoleReadOnlyAccess`；中国站走 `business.aliyuncs.com`、国际站走 `business.ap-southeast-1.aliyuncs.com`，**两站 AK 互不通用**，返回账户现金/可用余额与当月账单明细）。若你使用 OneAPI/NewAPI 类中转站，也可直接添加「OneAPI / NewAPI 网关」接入；海外厂商入口见上文「海外厂商」表格（OpenAI Admin Key、Gemini Cloud 账单、xAI 等）。
 
 **Q：自动刷新会不会消耗 Token？**
 余额查询仅调用官方轻量查询接口（如 `/user/balance`、`/v1/models`），不调用对话模型，不产生计费消耗。

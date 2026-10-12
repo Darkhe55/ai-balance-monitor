@@ -92,7 +92,7 @@ public final class ModelStudioTokenPlanProvider implements BalanceProvider {
             if (resp1.status() == 401 || resp1.status() == 403 || resp2.status() == 401 || resp2.status() == 403) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.UNAUTHORIZED)
-                        .message("AccessKey 无效或无调用权限（建议 RAM 子账号仅授权所需最小权限，勿用主账号 AK）").build();
+                        .message("AccessKey 无效或无调用权限（RAM 需 AliyunModelStudioReadOnlyAccess，勿用主账号 AK）").build();
             }
             List<JsonNode> roots = new ArrayList<>();
             if (resp1.status() == 200 && root1 != null) {

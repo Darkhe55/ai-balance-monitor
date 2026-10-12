@@ -43,7 +43,7 @@ public enum ProviderId {
             "按量付费 · 模型限流配额", "百炼配额账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
     BAILIAN_TOKENPLAN("阿里云百炼·Token Plan 额度", "#FF6A00", "https://modelstudio.cn-beijing.aliyuncs.com",
-            "账号授权方式：填阿里云 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。安全建议：创建 RAM 子账号，仅授权调用本接口所需的最小权限，勿用主账号密钥。官方 OpenAPI（ListSubscriptionSharedPackages / GetSubscriptionSeatDetails）返回 Token Plan 各订阅/共享包的 Credits 周期总额与剩余额度（含周期起止时间）；未订阅 Token Plan 时返回无数据。账户现金余额请用「阿里云百炼·账户余额」入口。",
+            "账号授权方式：填阿里云 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。安全建议：创建 RAM 子账号，仅授权百炼只读权限（AliyunModelStudioReadOnlyAccess），勿用主账号密钥。官方 OpenAPI（ListSubscriptionSharedPackages / GetSubscriptionSeatDetails）返回 Token Plan 各订阅/共享包的 Credits 周期总额与剩余额度（含周期起止时间）；未订阅 Token Plan 时返回无数据。账户现金余额请用「阿里云百炼·账户余额」入口。",
             "订阅套餐 · Token Plan Credits", "百炼 Token Plan 账户", Region.DOMESTIC,
             BillingMode.SUBSCRIPTION),
     /**
@@ -53,7 +53,7 @@ public enum ProviderId {
      */
     BAILIAN_ACCOUNT("阿里云百炼·账户余额与账单（中国站）", "#FF6A00", "https://business.aliyuncs.com",
             "账号授权方式：填阿里云中国站 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。"
-                    + "安全建议：创建 RAM 子账号，仅授权 BSS 只读权限（AliyunBSSReadOnlyAccess），勿用主账号密钥。"
+                    + "安全建议：创建 RAM 子账号，仅授权财务只读权限（AliyunFinanceConsoleReadOnlyAccess），勿用主账号密钥。"
                     + "查询走中国站 BssOpenApi（business.aliyuncs.com）；国际站账号的 AccessKey 在中国站会报 "
                     + "InvalidAccessKeyId.NotFound（HTTP 404），请改用「阿里云百炼·账户余额与账单（国际站）」入口。"
                     + "工具经阿里云官方 SDK（BssOpenApi 2017-12-14）调用 QueryAccountBalance 与 QueryAccountBill，"
@@ -69,7 +69,7 @@ public enum ProviderId {
             "https://business.ap-southeast-1.aliyuncs.com",
             "账号授权方式：填阿里云国际站（alibabacloud.com）AccessKey ID + AccessKey Secret（控制台右上角头像 → AccessKey 管理创建）。"
                     + "国际站 AccessKey 在中国站接口上会报 InvalidAccessKeyId.NotFound（HTTP 404），必须使用本入口。"
-                    + "安全建议：创建 RAM 子账号，仅授权 BSS 只读权限，勿用主账号密钥。"
+                    + "安全建议：创建 RAM 子账号，仅授权财务只读权限（AliyunFinanceConsoleReadOnlyAccess），勿用主账号密钥。"
                     + "查询走国际站 BssOpenApi（business.ap-southeast-1.aliyuncs.com），接口与中国站一致，"
                     + "返回账户余额、可用现金、信控额度与当月账单费用明细（币种随账号，如 USD）。",
             "云账户余额 + 当月账单 · 官方 SDK（国际站）", "阿里云账户（国际站）", Region.OVERSEAS,
@@ -77,13 +77,13 @@ public enum ProviderId {
     /** @deprecated 已合并进 {@link #BAILIAN_ACCOUNT}，仅保留枚举值兼容旧配置文件，UI 不再展示。 */
     @Deprecated
     BAILIAN_BILLING("阿里云百炼·官方账单", "#FF6A00", "https://business.aliyuncs.com",
-            "账号授权方式：填阿里云 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。安全建议：创建 RAM 子账号，仅授权 BSS 只读权限（AliyunBSSReadOnlyAccess），勿用主账号密钥。工具调用官方账单接口查询当月费用与产品明细（含百炼计费项）。",
+            "账号授权方式：填阿里云 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。安全建议：创建 RAM 子账号，仅授权财务只读权限（AliyunFinanceConsoleReadOnlyAccess），勿用主账号密钥。工具调用官方账单接口查询当月费用与产品明细（含百炼计费项）。",
             "云账单 · 当月费用", "阿里云账单账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
     /** @deprecated 已合并进 {@link #BAILIAN_ACCOUNT}，仅保留枚举值兼容旧配置文件，UI 不再展示。 */
     @Deprecated
     QWEN_ACCOUNT("阿里云百炼·账户余额", "#FF6A00", "https://business.aliyuncs.com",
-            "账号授权方式：填阿里云 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。安全建议：创建 RAM 子账号，仅授权 BSS 只读权限（AliyunBSSReadOnlyAccess），勿用主账号密钥。官方接口返回可用余额、可用现金、信控额度。",
+            "账号授权方式：填阿里云 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。安全建议：创建 RAM 子账号，仅授权财务只读权限（AliyunFinanceConsoleReadOnlyAccess），勿用主账号密钥。官方接口返回可用余额、可用现金、信控额度。",
             "云账户余额 · 官方接口", "阿里云账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
     VOLCENGINE("火山方舟", "#3370FF", "https://billing.volcengineapi.com",

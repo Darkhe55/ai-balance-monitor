@@ -3,6 +3,7 @@ package com.aibalance.model;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,6 +36,21 @@ class ProviderIdTest {
                 ProviderId.BAILIAN_ACCOUNT_INTL.getDefaultBaseUrl());
         assertEquals(ProviderId.Region.DOMESTIC, ProviderId.BAILIAN_ACCOUNT.getRegion());
         assertEquals(ProviderId.Region.OVERSEAS, ProviderId.BAILIAN_ACCOUNT_INTL.getRegion());
+    }
+
+    @Test
+    void aliyunEntriesRecommendLeastPrivilegeRamPolicies() {
+        // 余额入口：财务只读策略（含 bss:Describe* / Query*，覆盖 QueryAccountBalance 的授权点 bss:DescribeAcccount）
+        assertTrue(ProviderId.BAILIAN_ACCOUNT.getDescription()
+                .contains("AliyunFinanceConsoleReadOnlyAccess"));
+        assertTrue(ProviderId.BAILIAN_ACCOUNT_INTL.getDescription()
+                .contains("AliyunFinanceConsoleReadOnlyAccess"));
+        // Token Plan 入口：百炼控制面只读策略（含 modelstudio:List* / Get*）
+        assertTrue(ProviderId.BAILIAN_TOKENPLAN.getDescription()
+                .contains("AliyunModelStudioReadOnlyAccess"));
+        // 不再推荐信息量不足的笼统表述
+        assertFalse(ProviderId.BAILIAN_ACCOUNT.getDescription().contains("AliyunBSSReadOnlyAccess"));
+        assertFalse(ProviderId.BAILIAN_TOKENPLAN.getDescription().contains("仅授权调用本接口所需的最小权限"));
     }
 
     @Test

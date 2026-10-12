@@ -162,7 +162,7 @@ public final class AliyunAccountProvider implements BalanceProvider {
             if (balResp.getStatus() == 401 || balResp.getStatus() == 403) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.UNAUTHORIZED)
-                        .message("AccessKey 无效或无余额查询权限（RAM 需 AliyunBSSReadOnlyAccess）").build();
+                        .message("AccessKey 无效或无余额查询权限（RAM 需 AliyunFinanceConsoleReadOnlyAccess）").build();
             }
             if (balResp.getStatus() != 200) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
@@ -221,7 +221,7 @@ public final class AliyunAccountProvider implements BalanceProvider {
                     || e.getErrCode().contains("NoPermission"))) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.UNAUTHORIZED)
-                        .message("AccessKey 无效或无权限（RAM 需 AliyunBSSReadOnlyAccess）："
+                        .message("AccessKey 无效或无权限（RAM 需 AliyunFinanceConsoleReadOnlyAccess）："
                                 + e.getErrCode()).build();
             }
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
