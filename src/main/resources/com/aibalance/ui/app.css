@@ -1,0 +1,1042 @@
+/* ============================================================
+   AI 余额监控 - 主题基础（暗色）+ 设计基线
+   ------------------------------------------------------------
+   设计基线（taste-skill 准则）：
+   - 字体：内嵌 Geist 家族（400=Geist / 500=Geist Medium /
+           600=Geist SemiBold / 700=Geist Bold / 800=Geist Black），
+           中文回退 Microsoft YaHei UI
+   - 颜色：off-black 中性底 + 单一强调色 #B04A76（暗紫红，仅交互元素）
+           品牌色只保留在 8px 圆点上（语义身份标识，不抢视觉）
+   - 形状：卡片 16 / 交互控件 10 / 状态徽章 pill，统一圆角档位
+   - 结构：双层嵌套卡片（外层壳 + 内层芯），内顶部高光
+   - 动效：只有动机才动（入场/悬停/按压/刷新反馈），统一 SPLINE 曲线
+   - 反 AI 味：无 em-dash、无装饰字形、分隔点每行至多 1 个
+
+   明暗主题机制：
+   - 本文件定义暗色值；theme-light.css 覆盖同名变量实现亮色。
+   - 变量声明在选择器组 .root, .context-menu, .tooltip,
+     .combo-box-popup, .settings-pane 上，保证主场景与弹层
+     （右键菜单/提示/下拉/对话框）都能解析变量。
+   - 渐变与阴影等不可变量化的值，在 theme-light.css 中按选择器覆盖。
+   ============================================================ */
+
+/* ---------------- 设计令牌（暗色默认值） ---------------- */
+.root,
+.context-menu,
+.tooltip,
+.combo-box-popup,
+.settings-pane,
+.picker-pane,
+.ball-root {
+    -aib-bg: #14101A;
+    -aib-surface: #1B1522;
+    -aib-shell: #241C2C;
+    -aib-border: #322739;
+    -aib-border-strong: #3A2E43;
+    -aib-raised: #1E1726;
+    -aib-raised-hover: #261D31;
+    -aib-menu-bg: #1E1726;
+    -aib-menu-hover: #282033;
+    -aib-text: #F4EFF5;
+    -aib-text-soft: #CEC4D2;
+    -aib-text-muted: #9A8C9E;
+    -aib-text-faint: #6E6074;
+    -aib-accent: #B04A76;
+    -aib-accent-bright: #E07BA8;
+    -aib-accent-soft: rgba(176, 74, 118, 0.16);
+    -aib-accent-border: rgba(176, 74, 118, 0.45);
+    -aib-focus-border: #CE6E9B;
+    -aib-track: #1C1522;
+    -aib-scroll-thumb: #3A2E43;
+    -aib-scroll-thumb-hover: #4C3C53;
+    -aib-card-line: #2A2132;
+    -aib-header-line: #211827;
+    -aib-header-bg: #1E1726;
+    -aib-tooltip-bg: #282033;
+    -aib-form-label: #B7A9BC;
+    -aib-form-hint: #8B7C90;
+    -aib-empty-ring-outer: #3A2E43;
+    -aib-empty-ring-mid: #2C2233;
+    -aib-badge-ok-bg: rgba(52, 211, 153, 0.10);
+    -aib-badge-ok-border: rgba(52, 211, 153, 0.35);
+    -aib-badge-ok-text: #6EE7B7;
+    -aib-badge-ok-dot: #34D399;
+    -aib-badge-warn-bg: rgba(251, 191, 36, 0.10);
+    -aib-badge-warn-border: rgba(251, 191, 36, 0.35);
+    -aib-badge-warn-text: #FCD34D;
+    -aib-badge-warn-dot: #FBBF24;
+    -aib-badge-err-bg: rgba(248, 113, 113, 0.10);
+    -aib-badge-err-border: rgba(248, 113, 113, 0.35);
+    -aib-badge-err-text: #FCA5A5;
+    -aib-badge-err-dot: #F87171;
+    -aib-badge-muted-bg: rgba(100, 116, 139, 0.12);
+    -aib-badge-muted-border: rgba(100, 116, 139, 0.30);
+    -aib-badge-muted-text: #94A3B8;
+    -aib-badge-muted-dot: #94A3B8;
+}
+
+/* ---------------- 根 ---------------- */
+.root {
+    -fx-base: -aib-bg;
+    -fx-background-color: -aib-bg,
+        radial-gradient(center 18% 0%, radius 75%,
+            rgba(176, 74, 118, 0.06), rgba(20, 16, 26, 0) 55%);
+    -fx-font-family: "Geist", "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    -fx-text-fill: -aib-text;
+    -fx-font-size: 13px;
+    -fx-focus-color: -aib-accent;
+    -fx-faint-focus-color: -aib-accent-soft;
+}
+
+/* ---------------- 头部（≤ 72px，单行） ---------------- */
+.app-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -aib-header-line transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.app-title {
+    -fx-font-family: "Geist Bold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 19px;
+    -fx-text-fill: -aib-text;
+    -fx-letter-spacing: -0.3px;
+}
+
+.app-subtitle {
+    -fx-font-family: "Geist Medium", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+/* ---------------- 按钮 ---------------- */
+.button {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 6 15 6 15;
+    -fx-font-size: 12.5px;
+    -fx-cursor: hand;
+}
+
+.button:focused {
+    -fx-border-color: -aib-focus-border;
+}
+
+.button:pressed {
+    -fx-translate-y: 1;
+}
+
+.button-primary {
+    -fx-background-color: linear-gradient(to bottom, #B04A76, #8E3A60);
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: #C15885;
+}
+
+.button-primary:hover {
+    -fx-background-color: linear-gradient(to bottom, #3D74FA, #2B59E6);
+}
+
+.button-primary:disabled {
+    -fx-opacity: 0.7;
+}
+
+.button-outline {
+    -fx-background-color: transparent;
+    -fx-text-fill: -aib-text-soft;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+}
+
+.button-outline:hover {
+    -fx-background-color: -aib-raised-hover;
+    -fx-border-color: -aib-border-strong;
+    -fx-text-fill: -aib-text;
+}
+
+.button-ghost {
+    -fx-background-color: transparent;
+    -fx-text-fill: -aib-text-muted;
+    -fx-border-color: transparent;
+    -fx-padding: 5 10 5 10;
+    -fx-font-size: 12px;
+}
+
+.button-ghost:hover {
+    -fx-text-fill: -aib-text;
+    -fx-background-color: -aib-raised-hover;
+}
+
+.card-menu {
+    -fx-background-color: transparent;
+    -fx-text-fill: -aib-text-muted;
+    -fx-border-color: transparent;
+    -fx-padding: 2 6 2 6;
+    -fx-font-size: 15px;
+}
+
+.card-menu:hover {
+    -fx-text-fill: -aib-text;
+    -fx-background-color: -aib-menu-hover;
+}
+
+/* ---------------- 明暗切换 ---------------- */
+.theme-toggle {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-background-color: transparent;
+    -fx-text-fill: -aib-text-muted;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 6 11 6 11;
+    -fx-font-size: 12.5px;
+    -fx-cursor: hand;
+}
+
+.theme-toggle:hover {
+    -fx-background-color: -aib-raised-hover;
+    -fx-text-fill: -aib-text;
+    -fx-border-color: -aib-scroll-thumb-hover;
+}
+
+.theme-toggle:pressed {
+    -fx-translate-y: 1;
+}
+
+/* ---------------- 自动刷新开关 ---------------- */
+.toggle-auto {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-background-color: -aib-raised;
+    -fx-text-fill: -aib-text-muted;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+
+.toggle-auto:selected {
+    -fx-background-color: -aib-accent-soft;
+    -fx-text-fill: -aib-accent-bright;
+    -fx-border-color: -aib-accent;
+}
+
+/* ---------------- 下拉框 ---------------- */
+.combo-box {
+    -fx-background-color: -aib-raised;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 2 6 2 6;
+}
+
+.combo-box:focused {
+    -fx-border-color: -aib-focus-border;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -aib-text-soft;
+    -fx-padding: 4 8 4 8;
+}
+
+.combo-box .arrow-button .arrow {
+    -fx-background-color: -aib-text-muted;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: -aib-menu-bg;
+    -fx-border-color: -aib-border-strong;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+
+.combo-box-popup .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -aib-text-soft;
+    -fx-padding: 6 12 6 12;
+}
+
+.combo-box-popup .list-cell:hover,
+.combo-box-popup .list-cell:selected {
+    -fx-background-color: -aib-menu-hover;
+    -fx-text-fill: -aib-text;
+}
+
+/* ---------------- 滚动区域 ---------------- */
+.app-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.app-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+/* 设置对话框滚动区：透明无边框，内容超高时在视口内滚动 */
+.dialog-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.dialog-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical,
+.scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-width: 10;
+    -fx-pref-height: 10;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -aib-scroll-thumb;
+    -fx-background-radius: 5;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: -aib-scroll-thumb-hover;
+}
+
+.scroll-bar .track {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-background-color: transparent;
+}
+
+/* ---------------- 刷新进度条（有动机的反馈） ---------------- */
+.refresh-progress {
+    -fx-min-height: 2;
+    -fx-pref-height: 2;
+    -fx-max-height: 2;
+}
+
+.refresh-track {
+    -fx-background-color: -aib-track;
+}
+
+.refresh-bar {
+    -fx-background-color: linear-gradient(to right, #B04A76, #E07BA8);
+    -fx-background-radius: 1;
+}
+
+/* ---------------- 双层嵌套卡片 ---------------- */
+.card-shell {
+    -fx-background-color: -aib-shell;
+    -fx-background-radius: 18;
+    -fx-border-color: -aib-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 18;
+    -fx-padding: 1.5;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 22, 0, 0, 6);
+}
+
+.card-shell:hover {
+    -fx-border-color: -aib-scroll-thumb-hover;
+    -fx-translate-y: -2;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.55), 28, 0, 0, 10);
+}
+
+.card-shell:pressed {
+    -fx-translate-y: 0;
+}
+
+.card {
+    -fx-background-color: -aib-surface,
+        linear-gradient(to bottom,
+            rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 55%);
+    -fx-background-radius: 16;
+    -fx-padding: 15 17 13 17;
+}
+
+.brand-dot {
+    -fx-background-radius: 50%;
+}
+
+.provider-name {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -aib-text-muted;
+    -fx-letter-spacing: 0.3px;
+}
+
+.billing-tag {
+    -fx-font-family: "Geist Medium", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 10px;
+    -fx-text-fill: -aib-text-faint;
+    -fx-background-color: -aib-shell;
+    -fx-background-radius: 7px;
+    -fx-padding: 1.5 8 1.5 8;
+}
+
+.account-name {
+    -fx-font-family: "Geist Bold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 15.5px;
+    -fx-text-fill: -aib-text;
+    -fx-letter-spacing: -0.2px;
+}
+
+.amount-value {
+    -fx-font-family: "Geist Bold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 26px;
+    -fx-text-fill: -aib-text;
+    -fx-letter-spacing: -0.8px;
+}
+
+.amount-currency {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 12px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+.amount-caption {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+.card-details {
+    -fx-border-color: -aib-card-line;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 9 0 2 0;
+}
+
+.detail-label {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+.detail-value {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -aib-text-soft;
+    -fx-text-overrun: ellipsis;
+}
+
+/* ---------------- 能力区块（balance/usage/cost/quota/spendLimit） ---------------- */
+.card-metrics {
+    -fx-border-color: -aib-card-line;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 7 0 2 0;
+}
+
+.metric-block {
+    -fx-padding: 2 0 2 0;
+}
+
+/* 展示条目对话框：条目行 hover 反馈（暗色主题） */
+.display-entry-row {
+    -fx-background-radius: 8px;
+    -fx-background-insets: 0;
+}
+.display-entry-row:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.055);
+}
+.display-entry-row .check-box > .box {
+    -fx-padding: 3px;
+}
+.display-entry-row .check-box > .box > .mark {
+    -fx-padding: 3px;
+}
+
+.metric-dot {
+    -fx-background-radius: 50%;
+}
+
+.metric-cap {
+    -fx-font-size: 10px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -aib-text-muted;
+    -fx-translate-y: 1;
+}
+
+.metric-note {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+/* ---------------- 状态徽章 ---------------- */
+.status-pill {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.status-dot {
+    -fx-background-radius: 50%;
+}
+
+.badge-ok {
+    -fx-background-color: -aib-badge-ok-bg;
+    -fx-border-color: -aib-badge-ok-border;
+    -fx-border-width: 1;
+}
+
+.badge-ok .status-dot {
+    -fx-background-color: -aib-badge-ok-dot;
+}
+
+.badge-ok .status-text {
+    -fx-text-fill: -aib-badge-ok-text;
+}
+
+.badge-warn {
+    -fx-background-color: -aib-badge-warn-bg;
+    -fx-border-color: -aib-badge-warn-border;
+    -fx-border-width: 1;
+}
+
+.badge-warn .status-dot {
+    -fx-background-color: -aib-badge-warn-dot;
+}
+
+.badge-warn .status-text {
+    -fx-text-fill: -aib-badge-warn-text;
+}
+
+.badge-err {
+    -fx-background-color: -aib-badge-err-bg;
+    -fx-border-color: -aib-badge-err-border;
+    -fx-border-width: 1;
+}
+
+.badge-err .status-dot {
+    -fx-background-color: -aib-badge-err-dot;
+}
+
+.badge-err .status-text {
+    -fx-text-fill: -aib-badge-err-text;
+}
+
+.badge-muted {
+    -fx-background-color: -aib-badge-muted-bg;
+    -fx-border-color: -aib-badge-muted-border;
+    -fx-border-width: 1;
+}
+
+.badge-muted .status-dot {
+    -fx-background-color: -aib-badge-muted-dot;
+}
+
+.badge-muted .status-text {
+    -fx-text-fill: -aib-badge-muted-text;
+}
+
+.status-text {
+    -fx-font-family: "Geist Bold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 10.5px;
+}
+
+.card-time {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+/* ---------------- 空状态（构图化插图，无装饰字形） ---------------- */
+.empty-illus {
+    -fx-pref-width: 96;
+    -fx-pref-height: 96;
+    -fx-min-width: 96;
+    -fx-min-height: 96;
+}
+
+.empty-ring-outer {
+    -fx-background-color: transparent;
+    -fx-border-color: -aib-empty-ring-outer;
+    -fx-border-width: 1.5;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.empty-ring-mid {
+    -fx-background-color: transparent;
+    -fx-border-color: -aib-empty-ring-mid;
+    -fx-border-width: 1;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.empty-core {
+    -fx-background-color: radial-gradient(center 32% 32%, radius 60%,
+            #E07BA8, #B04A76 72%, #8E3A60);
+    -fx-background-radius: 999;
+}
+
+/* 涟漪脉冲环：呼吸动画的外层淡出描边，仅空状态显示时播放 */
+.empty-ripple {
+    -fx-background-color: transparent;
+    -fx-border-color: #B04A76;
+    -fx-border-width: 1;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+    -fx-opacity: 0;
+}
+
+.empty-title {
+    -fx-font-family: "Geist Bold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 18px;
+    -fx-text-fill: -aib-text;
+    -fx-letter-spacing: -0.2px;
+}
+
+.empty-hint {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+/* ---------------- 底部状态栏 ---------------- */
+.app-footer {
+    -fx-background-color: transparent;
+    -fx-border-color: -aib-header-line transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.footer-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+/* ---------------- 对话框 ---------------- */
+.settings-pane {
+    -fx-background-color: -aib-surface;
+    -fx-border-color: -aib-border;
+}
+
+.settings-pane .label {
+    -fx-text-fill: -aib-text-soft;
+}
+
+.settings-pane .text-field,
+.settings-pane .password-field {
+    -fx-background-color: -aib-raised;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-text-fill: -aib-text;
+    -fx-prompt-text-fill: -aib-text-faint;
+    -fx-highlight-fill: -aib-accent;
+}
+
+.settings-pane .text-field:focused,
+.settings-pane .password-field:focused {
+    -fx-border-color: -aib-focus-border;
+}
+
+.settings-pane .check-box .box {
+    -fx-background-color: -aib-raised;
+    -fx-border-color: -aib-border-strong;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+}
+
+.settings-pane .check-box:selected .box {
+    -fx-background-color: -aib-accent;
+    -fx-border-color: -aib-accent;
+}
+
+.settings-pane .check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+.settings-pane .button-bar .container {
+    -fx-padding: 12 0 4 0;
+}
+
+.form-label {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -aib-form-label;
+}
+
+.form-hint {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -aib-form-hint;
+}
+
+.form-value {
+    -fx-font-family: "Geist Medium", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -aib-text;
+    -fx-padding: 7 0 0 0;
+}
+
+/* ---------------- 其他（弹层） ---------------- */
+.context-menu {
+    -fx-background-color: -aib-menu-bg;
+    -fx-border-color: -aib-border-strong;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-padding: 6 0 6 0;
+}
+
+.context-menu .menu-item {
+    -fx-padding: 7 22 7 22;
+}
+
+.context-menu .menu-item .label {
+    -fx-text-fill: -aib-text-soft;
+    -fx-font-size: 12.5px;
+}
+
+.context-menu .menu-item:hover,
+.context-menu .menu-item:focused {
+    -fx-background-color: -aib-menu-hover;
+}
+
+.context-menu .menu-item:hover .label,
+.context-menu .menu-item:focused .label {
+    -fx-text-fill: -aib-text;
+}
+
+.context-menu .separator .line {
+    -fx-background-color: -aib-card-line;
+}
+
+.tooltip {
+    -fx-background-color: -aib-tooltip-bg;
+    -fx-text-fill: -aib-text-soft;
+    -fx-font-size: 11.5px;
+    -fx-background-radius: 7;
+    -fx-border-color: -aib-border-strong;
+}
+
+/* 刷新指示器弧线（跟随主题强调色） */
+.spinner-arc {
+    -fx-stroke: -aib-accent-bright;
+}
+
+/* ---------------- 服务选型弹窗（图标网格） ---------------- */
+.picker-pane {
+    -fx-background-color: -aib-surface;
+    -fx-border-color: -aib-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+}
+
+.picker-pane .button-bar .container {
+    -fx-padding: 12 16 10 16;
+}
+
+.picker-pane .button-bar .button {
+    -fx-font-size: 12.5px;
+    -fx-padding: 7 18 7 18;
+    -fx-background-radius: 9;
+    -fx-cursor: hand;
+}
+
+.picker-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.picker-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.picker-section-title {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 12px;
+    -fx-text-fill: -aib-form-label;
+    -fx-padding: 4 2 0 2;
+}
+
+.provider-tile {
+    -fx-background-color: -aib-raised;
+    -fx-background-radius: 14;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+    -fx-border-radius: 14;
+    -fx-padding: 12 10 10 10;
+    -fx-min-width: 108;
+    -fx-max-width: 108;
+    -fx-pref-width: 108;
+    -fx-min-height: 108;
+    -fx-max-height: 108;
+    -fx-pref-height: 108;
+    -fx-cursor: hand;
+}
+
+.provider-tile:hover {
+    -fx-background-color: -aib-raised-hover;
+    -fx-border-color: -aib-focus-border;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.30), 12, 0.25, 0, 3);
+}
+
+/* 暂不支持的厂商：置灰、无 hover 反馈、不可点击 */
+.provider-tile:disabled,
+.provider-tile:disabled:hover {
+    -fx-background-color: -aib-raised;
+    -fx-border-color: -aib-border-strong;
+    -fx-opacity: 0.42;
+    -fx-cursor: default;
+    -fx-effect: none;
+}
+.provider-tile:disabled .provider-tile-logo {
+    -fx-effect: none;
+}
+
+.provider-tile-selected {
+    -fx-border-color: -aib-accent-border;
+    -fx-border-width: 1.5;
+}
+
+.provider-tile-logo {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 8, 0.2, 0, 2);
+}
+
+.provider-tile-fallback {
+    -fx-font-family: "Geist Bold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 22px;
+    -fx-text-fill: white;
+}
+
+.provider-tile-name {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -aib-text-soft;
+    -fx-text-alignment: center;
+}
+
+/* 设置表单里的服务选择按钮（外壳式） */
+.provider-picker {
+    -fx-background-color: -aib-raised;
+    -fx-background-radius: 10;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-padding: 8 12 8 12;
+    -fx-font-family: "Geist Medium", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -aib-text;
+    -fx-alignment: CENTER_LEFT;
+    -fx-content-display: LEFT;
+}
+
+.provider-picker:hover {
+    -fx-border-color: -aib-focus-border;
+    -fx-background-color: -aib-raised-hover;
+}
+
+.provider-picker:focused {
+    -fx-border-color: -aib-focus-border;
+}
+
+/* ==================== 悬浮球 ==================== */
+.ball-root {
+    -fx-background-color: transparent;
+}
+
+/* 球模式 */
+.ball-pane {
+    -fx-background-color: transparent;
+}
+
+.ball-circle {
+    -fx-fill: radial-gradient(center 34% 30%, radius 100%, #7E4E68 0%, #4A2E42 62%, #201427 100%);
+    -fx-stroke: #6A4460;
+    -fx-stroke-width: 1.2;
+    /* 光晕由 .ball-glow-ring 节点渐变实现；不再用 -fx-effect：
+       dropshadow 在透明窗口上会渲染成覆盖全窗口的不透明矩形缓冲（深浅四角都出现残色方块） */
+    -fx-effect: none;
+}
+
+/* 球光晕环：普通渐变节点，alpha 走常规混合，四角保持真透明 */
+.ball-glow-ring {
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, rgba(0, 0, 0, 0.42) 76%, rgba(0, 0, 0, 0.0) 100%);
+}
+
+.ball-icon {
+    -fx-fill: #E8EDF6;
+}
+
+.ball-letter {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 20px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #e8edf6;
+}
+
+.ball-status-dot {
+    -fx-background-radius: 50%;
+    -fx-border-radius: 50%;
+    -fx-border-width: 2;
+    -fx-border-color: rgba(10, 14, 22, 0.9);
+}
+
+.ball-status-ok   { -fx-background-color: #34d399; }
+.ball-status-warn { -fx-background-color: #fbbf24; }
+.ball-status-err  { -fx-background-color: #f87171; }
+
+/* 面板模式 */
+.ball-panel {
+    -fx-background-color: -aib-bg;
+    -fx-background-radius: 14;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+    -fx-border-radius: 14;
+    /* 不加外阴影：透明窗口上 dropshadow 会在面板外形成可见灰/黑光晕（用户反馈的"四角灰色背景"） */
+    -fx-effect: none;
+}
+
+.ball-panel-header {
+    -fx-background-color: -aib-header-bg;
+    -fx-background-radius: 13 13 0 0;
+    -fx-border-color: transparent transparent -aib-border-strong transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.ball-panel-title {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -aib-text;
+}
+
+.ball-panel-btn {
+    -fx-background-color: -aib-raised;
+    -fx-background-radius: 7;
+    -fx-border-color: -aib-border-strong;
+    -fx-border-width: 1;
+    -fx-border-radius: 7;
+    -fx-padding: 4 10 4 10;
+    -fx-font-family: "Geist Medium", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 11px;
+    -fx-text-fill: -aib-text-muted;
+    -fx-cursor: hand;
+}
+
+.ball-panel-btn:hover {
+    -fx-background-color: -aib-raised-hover;
+    -fx-text-fill: -aib-text;
+}
+
+.ball-scroll {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.ball-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.ball-rows {
+    -fx-background-color: transparent;
+    -fx-padding: 2 0 2 0;
+}
+
+.ball-row {
+    -fx-background-color: -aib-raised;
+    -fx-background-radius: 9;
+    -fx-border-color: transparent;
+    -fx-padding: 0 0 0 0;
+    -fx-cursor: hand;
+}
+
+.ball-row:hover {
+    -fx-background-color: -aib-raised-hover;
+}
+
+.ball-row-name {
+    -fx-font-family: "Geist Medium", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -aib-text;
+}
+
+.ball-row-prov {
+    -fx-font-family: "Geist Regular", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 10px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+.ball-row-amount {
+    -fx-font-family: "Geist SemiBold", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -aib-text;
+}
+
+.ball-row-status {
+    -fx-font-family: "Geist Regular", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 10px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+.ball-row-pct {
+    -fx-font-family: "Geist Medium", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+/* 多额度窗口子行（不同时间段套餐） */
+.ball-quota-label {
+    -fx-font-family: "Geist Regular", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -aib-text-soft;
+}
+
+.ball-quota-reset {
+    -fx-font-family: "Geist Regular", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 10px;
+    -fx-text-fill: -aib-text-faint;
+}
+
+.ball-progress-track {
+    -fx-background-color: -aib-border-strong;
+    -fx-background-radius: 3;
+    -fx-border-radius: 3;
+}
+
+.ball-progress-fill {
+    -fx-background-radius: 2;
+}
+
+.ball-row-none {
+    -fx-font-family: "Geist Regular", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 12px;
+    -fx-text-fill: -aib-text-muted;
+}
+
+.ball-panel-time {
+    -fx-font-family: "Geist Regular", "Microsoft YaHei UI", "Segoe UI";
+    -fx-font-size: 10px;
+    -fx-text-fill: -aib-text-muted;
+    -fx-alignment: CENTER_LEFT;
+}
+
+/* ---------------- 剩余额度进度条（主卡片） ---------------- */
+.quota-track {
+    -fx-background-color: -aib-border-strong;
+    -fx-background-radius: 3;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.quota-fill {
+    -fx-background-color: -aib-accent;
+    -fx-background-radius: 3;
+}
+
+/* 额度耗尽（剩余 ≤0.5%）：轨道整体红色警示底 + 填充深红，配合脉动动画 */
+.quota-track-empty {
+    -fx-background-color: rgba(248, 113, 113, 0.30);
+}
+
+.quota-fill-empty {
+    -fx-background-color: -aib-badge-err-dot;
+}

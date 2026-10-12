@@ -1,0 +1,13 @@
+# 统一换行：仓库内文本按 LF 存储，Windows 检出时自动转换（gradlew 保持 LF 以便 macOS/Linux 直接执行）
+* text=auto
+*.java text
+*.gradle text
+*.css text
+*.md text
+*.properties text
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+*.bat text eol=crlf
+*.jar binary
+*.png binary
+*.woff binary

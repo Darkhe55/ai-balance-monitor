@@ -1,0 +1,38 @@
+# Gradle 构建输出
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# 自包含发行版（jlink 运行时 + 依赖 jar）与打包产物
+dist/
+*.zip
+*.tar.gz
+
+# 开发过程截图与临时探针文件（不属于源码）
+snapshots/
+scratch/
+*.log
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+nbproject/
+
+# 操作系统
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# 工具运行时目录（如会话任务记录），不属于项目源码
+.reasonix/
+
+# 本地配置与凭据（应用默认写到用户目录，此处兜底防止误提交）
+config.json
+config.corrupted.bak
+.env

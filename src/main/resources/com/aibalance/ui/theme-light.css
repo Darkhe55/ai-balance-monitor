@@ -1,0 +1,135 @@
+/* ============================================================
+   AI 余额监控 - 亮色主题
+   ------------------------------------------------------------
+   覆盖 app.css 中同名的设计令牌与个别不可变量化的属性，
+   由应用按配置/切换开关动态挂载。变量选择器组必须与
+   app.css 保持一致，保证主场景与弹层都能解析亮色值。
+   ============================================================ */
+
+/* ---------------- 设计令牌（亮色值） ---------------- */
+.root,
+.context-menu,
+.tooltip,
+.combo-box-popup,
+.settings-pane,
+.picker-pane,
+.ball-root {
+    -aib-bg: #F5F6F8;
+    -aib-surface: #FFFFFF;
+    -aib-shell: #ECEEF2;
+    -aib-border: #E1E4EA;
+    -aib-border-strong: #C9CFD9;
+    -aib-raised: #FFFFFF;
+    -aib-raised-hover: #F1F3F6;
+    -aib-menu-bg: #FFFFFF;
+    -aib-menu-hover: #EEF1F6;
+    -aib-text: #1C2027;
+    -aib-text-soft: #3E4650;
+    -aib-text-muted: #67707C;
+    -aib-text-faint: #6B7480;
+    -aib-accent: #2F67F6;
+    -aib-accent-bright: #2451DB;
+    -aib-accent-soft: rgba(47, 103, 246, 0.10);
+    -aib-accent-border: rgba(47, 103, 246, 0.38);
+    -aib-focus-border: #2F67F6;
+    -aib-track: #E4E7ED;
+    -aib-scroll-thumb: #C6CCD6;
+    -aib-scroll-thumb-hover: #A9B1BD;
+    -aib-card-line: #E7EAF0;
+    -aib-header-line: #E3E6EC;
+    -aib-header-bg: #FFFFFF;
+    -aib-tooltip-bg: #FFFFFF;
+    -aib-form-label: #3E4650;
+    -aib-form-hint: #67707C;
+    -aib-empty-ring-outer: #CDD3DC;
+    -aib-empty-ring-mid: #DDE1E8;
+    -aib-badge-ok-bg: rgba(16, 185, 129, 0.10);
+    -aib-badge-ok-border: rgba(16, 185, 129, 0.35);
+    -aib-badge-ok-text: #047857;
+    -aib-badge-ok-dot: #10B981;
+    -aib-badge-warn-bg: rgba(217, 119, 6, 0.10);
+    -aib-badge-warn-border: rgba(217, 119, 6, 0.35);
+    -aib-badge-warn-text: #B45309;
+    -aib-badge-warn-dot: #F59E0B;
+    -aib-badge-err-bg: rgba(220, 38, 38, 0.08);
+    -aib-badge-err-border: rgba(220, 38, 38, 0.35);
+    -aib-badge-err-text: #B91C1C;
+    -aib-badge-err-dot: #EF4444;
+    -aib-badge-muted-bg: rgba(100, 116, 139, 0.10);
+    -aib-badge-muted-border: rgba(100, 116, 139, 0.28);
+    -aib-badge-muted-text: #64748B;
+    -aib-badge-muted-dot: #94A3B8;
+}
+
+/* ---------------- 根背景微光（亮色） ---------------- */
+.root {
+    -fx-base: -aib-bg;
+    -fx-background-color: -aib-bg,
+        radial-gradient(center 18% 0%, radius 75%,
+            rgba(47, 103, 246, 0.045), rgba(245, 246, 248, 0) 55%);
+    -fx-text-fill: -aib-text;
+    -fx-focus-color: -aib-accent;
+    -fx-faint-focus-color: -aib-accent-soft;
+}
+
+/* 悬浮球根节点必须保持真透明：JavaFX 会把 Scene 根节点同时加上 .root 类，
+   而亮色主题的 .root 背景规则（样式表加载顺序在 app.css 之后）会覆盖
+   app.css 中 .ball-root 的透明背景，导致亮色下球窗口变成不透明浅色方块。
+   这里显式重新声明透明，保证亮/暗主题下四角都是真透明（球保持圆形）。 */
+.ball-root {
+    -fx-background-color: transparent;
+}
+
+/* ---------------- 卡片（亮色：去顶部高光，换柔和阴影） ---------------- */
+.card-shell {
+    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.10), 20, 0, 0, 5);
+}
+
+.card-shell:hover {
+    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.16), 26, 0, 0, 9);
+}
+
+.card {
+    -fx-background-color: -aib-surface,
+        linear-gradient(to bottom, #FFFFFF, #FBFCFD 60%);
+}
+
+/* 展示条目对话框：条目行 hover 反馈（亮色主题） */
+.display-entry-row:hover {
+    -fx-background-color: rgba(16, 24, 40, 0.06);
+}
+
+/* 亮色下对话框滚动区同样透明无边框 */
+.dialog-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.dialog-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* ---------------- 悬浮球（亮色） ---------------- */
+.ball-root .ball-pane {
+    -fx-background-color: transparent;
+}
+
+.ball-root .ball-circle {
+    /* 粉蓝色系渐变：高光浅粉 → 粉蓝 → 边缘蓝（不是粉红，也不是灰蓝） */
+    -fx-fill: radial-gradient(center 34% 30%, radius 100%, #F8CFE0 0%, #B9B2D8 55%, #6E8BB8 100%);
+    -fx-stroke: #5F7EA9;
+    -fx-stroke-width: 1.2;
+    /* 不用 -fx-effect：dropshadow 在透明窗口上渲染为不受 clip 约束的矩形缓冲，
+       四角出现灰蓝残色方块（裁剪失败根因）。光晕由 .ball-glow-ring 节点渐变实现 */
+    -fx-effect: none;
+}
+
+.ball-root .ball-glow-ring {
+    -fx-fill: radial-gradient(center 50% 50%, radius 50%, rgba(94, 126, 169, 0.50) 76%, rgba(94, 126, 169, 0.0) 100%);
+}
+
+.ball-root .ball-icon {
+    -fx-fill: #FDF6F9;
+}
