@@ -54,6 +54,16 @@ class ProviderIdTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // 旧入口枚举仅用于验证隐藏与兼容
+    void removedBailianQuotaEntryIsHidden() {
+        // 「阿里百炼·模型配额」入口已移除：官方 /api/v1/models/limits 只返回限流配额（RPM/TPM），
+        // 模型 API Key 无法查余额；旧配置启动时迁移到「阿里云百炼·账户余额与账单」
+        assertTrue(ProviderId.BAILIAN.isHidden());
+        assertTrue(ProviderId.BAILIAN.capabilities().isEmpty());
+        assertTrue(ProviderId.BAILIAN.getDescription().contains("已移除"));
+    }
+
+    @Test
     void aliyunIntlEntryMatchesChinaEntryShape() {
         // 国际站入口与中国站同形（AccessKey ID/Secret 双凭证 + 余额/账单能力），仅站点不同
         assertEquals("阿里云百炼·账户余额与账单（国际站）", ProviderId.BAILIAN_ACCOUNT_INTL.getDisplayName());

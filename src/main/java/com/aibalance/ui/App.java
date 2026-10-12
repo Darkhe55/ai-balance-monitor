@@ -147,10 +147,13 @@ public final class App extends Application {
         ConfigStore configStore = new ConfigStore();
         ConfigStore.AppConfig cfg = configStore.load();
 
-        // 站点迁移：
-        // 1) 旧「阿里云百炼·官方账单 / 账户余额」隐藏入口 → 合并后的账户余额与账单入口；
+        // 百炼旧入口迁移：
+        // 1) 已移除 / 已合并的入口（模型限流配额 BAILIAN、官方账单 BAILIAN_BILLING、
+        //    账户余额 QWEN_ACCOUNT）→「阿里云百炼·账户余额与账单」入口；
         // 2) 配置里指向国际站（非 cn- 地域、-intl 域名或 ap-southeast 端点）的账户 → 国际站入口。
         // 迁移后清空 Base URL，让两个入口各自使用官方 endpoint；自定义 / 代理地址原样保留。
+        // 注意：原「模型配额」入口填的是 DashScope API Key（非 AccessKey），迁移后凭证字段语义
+        // 变为阿里云 AccessKey ID/Secret，卡片会提示补填 Secret，需用户自行替换或删除该账户。
         boolean migratedAliyun = false;
         for (AccountConfig acc : cfg.getAccounts()) {
             ProviderId p = acc.getProviderId();

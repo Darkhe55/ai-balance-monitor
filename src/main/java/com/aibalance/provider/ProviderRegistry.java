@@ -31,7 +31,6 @@ public final class ProviderRegistry {
         providers.put(ProviderId.MINIMAX, new MiniMaxProvider(http));
         providers.put(ProviderId.MINIMAX_INTL, new MiniMaxProvider(http));
         providers.put(ProviderId.KIMI_CODING, new KimiCodingProvider(http));
-        providers.put(ProviderId.BAILIAN, new BailianProvider(http));
         providers.put(ProviderId.BAILIAN_TOKENPLAN, new ModelStudioTokenPlanProvider(http));
         // 合并入口：账户余额 + 当月账单（阿里云官方 SDK）
         providers.put(ProviderId.BAILIAN_ACCOUNT, new AliyunAccountProvider(http));

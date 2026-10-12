@@ -38,9 +38,16 @@ public enum ProviderId {
             "填 Kimi Code 订阅套餐专用 Key。官方接口显示 5 小时/周窗口额度。默认国内 api.kimi.com，海外填 api.kimi.ai。",
             "订阅套餐 · Coding 额度", "Kimi Coding 套餐账户", Region.DOMESTIC,
             BillingMode.SUBSCRIPTION),
+    /**
+     * @deprecated 已移除：官方 {@code GET /api/v1/models/limits} 只返回模型限流配额（RPM/TPM），
+     * 既不是余额也不是套餐额度；而模型 API Key 无法查询余额（账户余额需阿里云 AccessKey 走
+     * BSS OpenAPI），免费额度与用量统计只有百炼 CLI / 控制台可见。入口已从 UI 移除，
+     * 旧配置会在启动时迁移到 {@link #BAILIAN_ACCOUNT}（账户余额与账单）。
+     */
+    @Deprecated
     BAILIAN("阿里百炼·模型配额", "#FF6A00", "https://dashscope.aliyuncs.com/",
-            "填阿里云百炼 DashScope API Key（百炼控制台 → API-KEY 管理创建）。官方接口 GET /api/v1/models/limits 返回的是各模型限流配额（请求/用量频率限制），不是余额也不是套餐额度。注意：该接口域名为 https://{业务空间ID}.cn-beijing.maas.aliyuncs.com，请把 Base URL 改为你的业务空间域名；若要查 Token Plan 套餐 Credits 额度，请改用「阿里云百炼·Token Plan 额度」入口。",
-            "按量付费 · 模型限流配额", "百炼配额账户", Region.DOMESTIC,
+            "该入口已移除：官方 /api/v1/models/limits 只返回模型限流配额（RPM/TPM），不是余额。账户余额请改用「阿里云百炼·账户余额与账单」入口（需阿里云 AccessKey ID/Secret）。",
+            "模型限流配额（入口已移除）", "百炼配额账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
     BAILIAN_TOKENPLAN("阿里云百炼·Token Plan 额度", "#FF6A00", "https://modelstudio.cn-beijing.aliyuncs.com",
             "账号授权方式：填阿里云 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。安全建议：创建 RAM 子账号，仅授权百炼只读权限（AliyunModelStudioReadOnlyAccess），勿用主账号密钥。官方 OpenAPI（ListSubscriptionSharedPackages / GetSubscriptionSeatDetails）返回 Token Plan 各订阅/共享包的 Credits 周期总额与剩余额度（含周期起止时间）；未订阅 Token Plan 时返回无数据。账户现金余额请用「阿里云百炼·账户余额」入口。",
@@ -316,7 +323,7 @@ public enum ProviderId {
     /** 该入口是否已在 UI 隐藏（被合并进新入口；保留枚举仅用于兼容旧配置反序列化）。 */
     @SuppressWarnings("deprecation")
     public boolean isHidden() {
-        return this == BAILIAN_BILLING || this == QWEN_ACCOUNT;
+        return this == BAILIAN || this == BAILIAN_BILLING || this == QWEN_ACCOUNT;
     }
 
     /**
@@ -346,8 +353,8 @@ public enum ProviderId {
                     ProviderCapability.COST, ProviderCapability.USAGE);
             case GEMINI -> ProviderCapability.set();
             case GEMINI_BILLING -> ProviderCapability.set(ProviderCapability.COST);
-            case BAILIAN -> ProviderCapability.set(
-                    ProviderCapability.COST, ProviderCapability.QUOTA);
+            // BAILIAN（模型限流配额）入口已移除：仅保留枚举值兼容旧配置反序列化，无可用能力
+            case BAILIAN -> ProviderCapability.set();
             case BAILIAN_TOKENPLAN -> ProviderCapability.set(
                     ProviderCapability.BALANCE, ProviderCapability.QUOTA);
             case BAILIAN_ACCOUNT, BAILIAN_ACCOUNT_INTL -> ProviderCapability.set(
