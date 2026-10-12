@@ -19,21 +19,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Future;
 
 /**
- * 阿里云百炼·账户余额与账单（合并入口）：经阿里云官方 SDK（BssOpenApi 2017-12-14）调用
- * QueryAccountBalance + QueryAccountBill 并合并展示。
+ * 阿里云百炼·账户余额与账单：经阿里云官方 SDK（BssOpenApi 2017-12-14）调用
+ * QueryAccountBalance + QueryAccountBill 并合并展示。中国站与国际站拆成两个独立入口：
+ * <ul>
+ *   <li>{@link ProviderId#BAILIAN_ACCOUNT}（中国站）→ https://business.aliyuncs.com</li>
+ *   <li>{@link ProviderId#BAILIAN_ACCOUNT_INTL}（国际站）→ https://business.ap-southeast-1.aliyuncs.com</li>
+ * </ul>
  * <p>
  * 配置说明（SDK 风格，非 URL）：
  * <ul>
  *   <li>API Key 字段 = 阿里云 AccessKey ID（LTAI…）</li>
  *   <li>Secret 字段 = 阿里云 AccessKey Secret（创建时仅显示一次）</li>
- *   <li>Base URL 字段 = 阿里云 Region（如 cn-beijing；国际站地域如 ap-southeast-1 自动使用国际版端点）</li>
+ *   <li>Base URL 字段 = 官方 endpoint（按入口预填，可改为自定义 / 代理地址）</li>
  * </ul>
- * endpoint 解析：Service=BssOpenApi，国内地域（cn-* 或未填写）→ https://business.aliyuncs.com，
- * 国际站地域（非 cn-*）→ https://business-intl.aliyuncs.com（与官方 SDK 内置解析规则一致，并显式注册兜底）。
+ * 兼容旧配置：该字段早期语义是「Region 地域」，因此填非 URL 值（如 cn-beijing / ap-southeast-1）
+ * 仍按 cn- 前缀映射到中国站 / 国际站端点，旧账户不会因升级而失效。
  * 签名与请求构造完全由官方 SDK 完成；实际网络发送通过 {@link HttpClientConfig#setCustomClientClassName}
  * 注入自定义 {@link HttpBridge}，桥接到本工具统一的 HttpSupport（Conscrypt TLS + 系统代理/直连开关），
  * 保证与其它厂商一致的网络行为与 TLS 兼容性。
@@ -41,9 +46,16 @@ import java.util.concurrent.Future;
 public final class AliyunAccountProvider implements BalanceProvider {
 
     private static final String PRODUCT = "BssOpenApi";
-    private static final String DEFAULT_REGION = "cn-beijing";
+    /** 中国站 BssOpenApi 公网 endpoint（官方「服务接入点」）。 */
     private static final String CN_ENDPOINT = "https://business.aliyuncs.com";
-    private static final String INTL_ENDPOINT = "https://business-intl.aliyuncs.com";
+    /**
+     * 国际站 BssOpenApi 公网 endpoint。官方文档中海外地域（新加坡 / 东京 / 首尔 / 美国 / 欧洲等）
+     * 统一使用 business.ap-southeast-1.aliyuncs.com；business-intl.aliyuncs.com 只存在于
+     * VPC 接入地址（business-intl.vpc-proxy.aliyuncs.com），公网无法解析。
+     */
+    private static final String INTL_ENDPOINT = "https://business.ap-southeast-1.aliyuncs.com";
+    private static final String CN_REGION = "cn-hangzhou";
+    private static final String INTL_REGION = "ap-southeast-1";
     private static final DateTimeFormatter BILL_CYCLE = DateTimeFormatter.ofPattern("yyyy-MM");
 
     private final HttpSupport http;
@@ -53,17 +65,50 @@ public final class AliyunAccountProvider implements BalanceProvider {
         HttpBridge.shared = http;
     }
 
+    /** 该入口的官方默认 endpoint。 */
+    static String defaultEndpoint(ProviderId pid) {
+        return pid == ProviderId.BAILIAN_ACCOUNT_INTL ? INTL_ENDPOINT : CN_ENDPOINT;
+    }
+
+    /** 该入口 SDK profile 使用的地域；endpoint 由 {@link #resolveEndpoint} 显式注册，地域仅作标识。 */
+    static String defaultRegion(ProviderId pid) {
+        return pid == ProviderId.BAILIAN_ACCOUNT_INTL ? INTL_REGION : CN_REGION;
+    }
+
     /**
-     * 根据 Service=BssOpenApi 与 Region 解析官方 endpoint（SDK 规则）。
-     * 国际站地域（非 cn- 前缀）使用国际版端点；未填/异常回退国内端点。
+     * Base URL 字段解析：留空 → 该入口官方默认 endpoint；填完整 URL → 归一化后原样使用
+     * （支持自定义 / 代理地址）；填地域名（旧配置遗留语义）→ cn- 前缀走中国站、其余走国际站端点。
      */
-    public static String resolveEndpoint(String regionOrUrl) {
-        if (regionOrUrl != null && regionOrUrl.contains("://")) {
-            // 兼容旧配置：Base URL 直接填了完整端点 URL，原样归一化使用
-            return normalizeUrl(regionOrUrl);
+    public static String resolveEndpoint(String baseUrlOrRegion, ProviderId pid) {
+        String value = baseUrlOrRegion == null ? "" : baseUrlOrRegion.strip();
+        if (value.isEmpty()) {
+            return defaultEndpoint(pid);
         }
-        String region = regionOrUrl == null || regionOrUrl.isBlank() ? DEFAULT_REGION : regionOrUrl.strip();
-        return region.startsWith("cn-") ? CN_ENDPOINT : INTL_ENDPOINT;
+        if (value.contains("://")) {
+            return normalizeUrl(value);
+        }
+        return value.startsWith("cn-") ? CN_ENDPOINT : INTL_ENDPOINT;
+    }
+
+    /** SDK profile 的 region：URL / 留空 → 入口默认地域；地域名（旧配置）→ 原值。 */
+    static String resolveRegion(String baseUrlOrRegion, ProviderId pid) {
+        String value = baseUrlOrRegion == null ? "" : baseUrlOrRegion.strip();
+        if (value.isEmpty() || value.contains("://")) {
+            return defaultRegion(pid);
+        }
+        return value;
+    }
+
+    /** 旧配置迁移辅助：该 Base URL / 地域是否指向国际站（含已废弃的 business-intl 域名）。 */
+    public static boolean looksInternational(String baseUrlOrRegion) {
+        String value = baseUrlOrRegion == null ? "" : baseUrlOrRegion.strip().toLowerCase(Locale.ROOT);
+        if (value.isEmpty()) {
+            return false;
+        }
+        if (value.contains("://")) {
+            return value.contains("-intl") || value.contains("ap-southeast");
+        }
+        return !value.startsWith("cn-");
     }
 
     /** 兼容旧配置：Base URL 以 URL 形式填写的归一化（去尾斜杠）。 */
@@ -77,7 +122,7 @@ public final class AliyunAccountProvider implements BalanceProvider {
 
     @Override
     public BalanceSnapshot check(AccountConfig config) {
-        ProviderId pid = ProviderId.BAILIAN_ACCOUNT;
+        ProviderId pid = config.getProviderId();
         if (!config.hasValidKey()) {
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                     BalanceSnapshot.Status.NOT_CONFIGURED).message("尚未填写 AccessKey ID").build();
@@ -89,12 +134,13 @@ public final class AliyunAccountProvider implements BalanceProvider {
         try {
             String ak = config.getApiKey().strip();
             String sk = config.getSecret().strip();
-            String regionOrUrl = config.getBaseUrl();
-            String region = resolveRegion(regionOrUrl);
+            String baseUrlOrRegion = config.getBaseUrl();
+            String region = resolveRegion(baseUrlOrRegion, pid);
+            String endpoint = resolveEndpoint(baseUrlOrRegion, pid);
 
-            // 官方 SDK：profile 注册 AccessKey 凭证 + Region，并按 Service=BssOpenApi 显式解析 endpoint
+            // 官方 SDK：profile 注册 AccessKey 凭证 + Region，并按 Service=BssOpenApi 显式注册 endpoint
             DefaultProfile profile = DefaultProfile.getProfile(region, ak, sk);
-            DefaultProfile.addEndpoint(region, PRODUCT, resolveEndpoint(regionOrUrl));
+            DefaultProfile.addEndpoint(region, PRODUCT, endpoint);
             // 注入自定义 HTTP 客户端：SDK 签名后经 HttpBridge 走本工具统一网络通道
             HttpClientConfig clientCfg = HttpClientConfig.getDefault();
             clientCfg.setCustomClientClassName(HttpBridge.class.getName());
@@ -180,15 +226,6 @@ public final class AliyunAccountProvider implements BalanceProvider {
                             BalanceSnapshot.Status.ERROR)
                     .message("解析失败: " + e.getClass().getSimpleName()).build();
         }
-    }
-
-    /** Region 字段归一化：空值回退默认地域；旧 URL 配置视为国内默认地域。 */
-    static String resolveRegion(String regionOrUrl) {
-        if (regionOrUrl == null || regionOrUrl.isBlank()) {
-            return DEFAULT_REGION;
-        }
-        String s = regionOrUrl.strip();
-        return s.contains("://") ? DEFAULT_REGION : s;
     }
 
     /** 解析 QueryAccountBalance 响应并合并进快照；接口报错返回 null。 */

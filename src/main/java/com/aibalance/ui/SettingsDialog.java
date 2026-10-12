@@ -339,24 +339,21 @@ final class SettingsDialog {
             ProviderId pid = providerValue;
             ProviderId prev = prevPid;
             prevPid = pid;
-            // 所有服务均显示 Base URL：无官方默认域名的服务必填，其余预填默认、可手动修改。
-            // 阿里云百炼·账户余额与账单为 SDK 风格：Base URL 字段语义为「Region（地域）」
-            boolean regionStyle = pid == ProviderId.BAILIAN_ACCOUNT;
+            // 所有服务均显示 Base URL：预填官方默认地址，可手动修改；无默认域名的入口必填。
+            // 旧配置兼容：阿里云百炼入口该字段早期语义是地域（如 cn-beijing），旧值仍可原样保留使用。
             if (baseUrlLabel != null) {
-                baseUrlLabel.setText(regionStyle ? "Region（地域）" : "Base URL");
+                baseUrlLabel.setText("Base URL");
             }
             if (pid != null) {
                 String text = baseUrl.getText();
                 boolean untouched = text == null || text.isBlank()
                         || (prev != null && text.strip().equals(prev.getDefaultBaseUrl()));
                 if (untouched) {
-                    baseUrl.setText(regionStyle ? "cn-beijing" : pid.getDefaultBaseUrl());
+                    baseUrl.setText(pid.getDefaultBaseUrl());
                 }
-                baseUrl.setPromptText(regionStyle
-                        ? "阿里云地域，如 cn-beijing / ap-southeast-1（默认 cn-beijing，国内地域自动使用官方 BssOpenApi 端点）"
-                        : (pid.hasDefaultBaseUrl()
+                baseUrl.setPromptText(pid.hasDefaultBaseUrl()
                         ? "默认 " + pid.getDefaultBaseUrl() + "，可修改"
-                        : "无官方默认域名，必填（https://…）"));
+                        : "无官方默认域名，必填（https://…）");
             }
             if (hint != null) {
                 hint.setText(pid == null ? "" : pid.getDescription());
@@ -544,7 +541,8 @@ final class SettingsDialog {
         /** 需要双凭证（云签名接口）的厂商。 */
         @SuppressWarnings("deprecation") // 旧百炼入口枚举仅用于兼容旧配置迁移
         static boolean needsSecret(ProviderId pid) {
-            return pid == ProviderId.BAILIAN_ACCOUNT || pid == ProviderId.BAILIAN_BILLING
+            return pid == ProviderId.BAILIAN_ACCOUNT || pid == ProviderId.BAILIAN_ACCOUNT_INTL
+                    || pid == ProviderId.BAILIAN_BILLING
                     || pid == ProviderId.QWEN_ACCOUNT || pid == ProviderId.BAILIAN_TOKENPLAN
                     || pid == ProviderId.VOLCENGINE || pid == ProviderId.TENCENT || pid == ProviderId.BAIDU;
         }

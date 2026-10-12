@@ -9,16 +9,16 @@
 
 ## 功能特性
 
-- **一键接入主流 AI 服务（共 25 个入口）**：
-  - **国内**：DeepSeek、Kimi 月之暗面（中国区 / 国际区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站 / 国际站）、Kimi Coding 套餐、阿里百炼·模型配额、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound
-  - **海外**：OpenAI（API Key / Admin Key）、Anthropic Claude、Google Gemini（API Key / Cloud 账单）、xAI Grok
+- **一键接入主流 AI 服务（共 26 个入口）**：
+  - **国内**：DeepSeek、Kimi 月之暗面（中国区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站）、Kimi Coding 套餐、阿里百炼·模型配额、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单（中国站）、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound
+  - **海外**：Kimi（国际区）、MiniMax 海螺（国际站）、OpenAI（API Key / Admin Key）、Anthropic Claude、Google Gemini（API Key / Cloud 账单）、xAI Grok、阿里云百炼·账户余额与账单（国际站）
   - **中转站**：OneAPI / NewAPI 网关、OpenRouter
 - **服务选型弹窗（图标网格）**：添加/编辑账户时点击「服务」打开弹窗，各厂商以**官方 logo 图标卡片**网格展示，按 **国内厂商 / 海外厂商 / 中转站** 分区布局，中转站（OneAPI、OpenRouter）置于最下方；logo 资源离线打包，深色/浅色主题均正常显示，无 logo 的服务自动回退品牌色徽标
 - **实时刷新**：自动刷新（15 秒 / 30 秒 / 60 秒 / 5 分钟可调）或手动刷新；所有账户**并行查询、互不阻塞**
 - **每账户独立状态**：在线 / Key 无效 / 请求超时 / 查询失败 / 未配置，单点失败不影响其他卡片
 - **Token 计划（套餐）额度**：智谱 GLM Coding Plan、MiniMax Token Plan、Kimi Coding 套餐的 5 小时/周窗口额度；阿里云百炼 Token Plan 的 Credits 剩余额度；阿里百炼模型限流配额（RPM/用量限制）；OpenRouter Key 配额（limit/usage）与账户 Credits；OpenAI Admin Key 的组织级费用与用量；Claude 响应头速率配额
 - **计费形式明确标注**：添加账户时表单自动显示该服务的计费形式标签（按量付费余额 / 按量付费配额 / 订阅套餐额度 / 云账户余额+账单 / 网关额度等），名称输入框示例随所选服务切换，避免误写成其他厂商名称
-- **Base URL 全服务可配**：所有服务均显示 Base URL 输入框并**预填官方默认地址**（如 DeepSeek `https://api.deepseek.com`），可手动修改（网关类与阿里云百炼·账户余额等无官方通用域名的入口需自行填写，已明确标注必填）
+- **Base URL 全服务可配**：所有服务均显示 Base URL 输入框并**预填官方默认地址**（如 DeepSeek `https://api.deepseek.com`、阿里云百炼中国站 `https://business.aliyuncs.com`），可手动修改为自定义 / 代理地址（网关类无官方通用域名，需自行填写，已明确标注必填）
 - **明暗双主题**：右上角一键切换深色/浅色，选择持久化到本地配置，重启后保持
 - **添加账户表单带滚动条**：内容超高时在框内滚动，小屏/高 DPI 下信息不超出屏幕，对话框可缩放
 - **卡片菜单**：每张卡片右上角「⋯」提供立即刷新 / 编辑 / 启用停用 / 删除，弹层在双主题下均可正常显示
@@ -44,7 +44,7 @@
 | Kimi Coding 套餐 | `GET /coding/v1/usages`（Kimi Code 订阅 Key） | Coding 套餐额度：5 小时速率窗口与周请求池已用/剩余 |
 | 阿里百炼·模型配额 | 官方接口 `GET /api/v1/models/limits`（普通 API Key，需完整业务空间 Base URL） | 各模型请求/用量限流配额（RPM/TPM，非余额） |
 | 阿里云百炼·Token Plan 额度 | 官方 OpenAPI `ListSubscriptionSharedPackages` + `GetSubscriptionSeatDetails`（域名 `modelstudio.cn-beijing.aliyuncs.com`，**ACS3-HMAC-SHA256 签名**，填阿里云 AccessKey ID/Secret） | 各订阅席位/共享包 **Credits 周期总额与剩余额度进度条**、周期起止时间、席位类型与状态；主金额 = 全部 Credits 剩余之和 |
-| 阿里云百炼·账户余额与账单 | 阿里云官方 SDK（BssOpenApi 2017-12-14）：`QueryAccountBalance` + `QueryAccountBill`（AccessKey ID/Secret，Region 默认 `cn-beijing`） | 账户余额、可用现金、信控额度 + 当月账单费用明细（账单接口失败不阻断余额展示） |
+| 阿里云百炼·账户余额与账单（中国站） | 阿里云官方 SDK（BssOpenApi 2017-12-14）：`QueryAccountBalance` + `QueryAccountBill`；中国站 endpoint `business.aliyuncs.com`，填中国站 AccessKey ID/Secret | 账户余额、可用现金、信控额度 + 当月账单费用明细（账单接口失败不阻断余额展示） |
 | 火山方舟 | 费用中心 `QueryBalanceAcct`（`billing.volcengineapi.com`，AK/SK 签名） | 可用余额、现金余额、欠费、冻结、信控额度 |
 | 腾讯混元 | 计费 `DescribeAccountBalance`（`billing.tencentcloudapi.com`，TC3-HMAC-SHA256，SecretId/SecretKey） | 可用余额、现金余额、信用额度、冻结金额、欠费（金额单位为分） |
 | 百度千帆 | `POST /v1/finance/cash/balance`（`billing.baidubce.com`，bce-auth-v1，AK/SK） | 现金余额（元） |
@@ -62,6 +62,7 @@
 | Google Gemini（API Key） | `GET /models?key=…` 校验 Key 有效性 | Key 状态、可用模型数；余额/预算请改用 Cloud 账单入口 |
 | Google Gemini（Cloud 账单） | Cloud Billing Budget API `GET …/budgets`：Base URL 需补全为 `…/v1/billingAccounts/{账单ID}`，凭证填 OAuth 访问令牌（`gcloud auth print-access-token`，约 1 小时有效） | 预算金额与花费 |
 | xAI / Grok | `GET /v1/billing/teams/{team_id}/prepaid/balance`（Management API Key；组织级 Key 需在「附加参数」填 `team_id`） | 预付余额与变动记录 |
+| 阿里云百炼·账户余额与账单（国际站） | 同中国站接口（`QueryAccountBalance` + `QueryAccountBill`），国际站 endpoint `business.ap-southeast-1.aliyuncs.com`，填国际站 AccessKey ID/Secret。**国际站 AK 与国内站不通用**：用中国站 AK 调中国站接口会返回 `InvalidAccessKeyId.NotFound`（HTTP 404） | 账户余额、可用现金、信控额度 + 当月账单费用明细（币种随账号，如 USD） |
 
 ### 中转站 / 网关
 
@@ -201,7 +202,7 @@ ai-balance-monitor/
 账户操作菜单：立即刷新 / 编辑账户 / 启用或停用 / 删除账户；双击卡片也可进入编辑。
 
 **Q：我的智谱 / 通义账户能接入吗？**
-智谱 GLM **可以**：在「智谱 GLM」服务下填写 **Coding Plan 订阅 Key**（普通按量 Key 无法查询套餐额度），Base URL 默认国内 `open.bigmodel.cn`，国际账号填 `https://api.z.ai`。阿里百炼可按三种入口接入：**「阿里百炼·模型配额」**（普通 API Key + 完整业务空间 Base URL `https://{业务空间ID}.cn-beijing.maas.aliyuncs.com`，返回的是模型限流配额非余额）；**「阿里云百炼·Token Plan 额度」**（阿里云 AccessKey ID/Secret，返回 Token Plan 订阅/共享包的 Credits 剩余额度进度条，推荐 RAM 子账号仅授权最小只读权限）；**「阿里云百炼·账户余额与账单」**（阿里云 AccessKey ID/Secret，推荐 RAM 只读子账号，返回账户现金/可用余额与当月账单明细）。若你使用 OneAPI/NewAPI 类中转站，也可直接添加「OneAPI / NewAPI 网关」接入；海外厂商入口见上文「海外厂商」表格（OpenAI Admin Key、Gemini Cloud 账单、xAI 等）。
+智谱 GLM **可以**：在「智谱 GLM」服务下填写 **Coding Plan 订阅 Key**（普通按量 Key 无法查询套餐额度），Base URL 默认国内 `open.bigmodel.cn`，国际账号填 `https://api.z.ai`。阿里百炼可按三种入口接入：**「阿里百炼·模型配额」**（普通 API Key + 完整业务空间 Base URL `https://{业务空间ID}.cn-beijing.maas.aliyuncs.com`，返回的是模型限流配额非余额）；**「阿里云百炼·Token Plan 额度」**（阿里云 AccessKey ID/Secret，返回 Token Plan 订阅/共享包的 Credits 剩余额度进度条，推荐 RAM 子账号仅授权最小只读权限）；**「阿里云百炼·账户余额与账单（中国站）」/「（国际站）」**（阿里云 AccessKey ID/Secret，推荐 RAM 只读子账号；中国站走 `business.aliyuncs.com`、国际站走 `business.ap-southeast-1.aliyuncs.com`，**两站 AK 互不通用**，返回账户现金/可用余额与当月账单明细）。若你使用 OneAPI/NewAPI 类中转站，也可直接添加「OneAPI / NewAPI 网关」接入；海外厂商入口见上文「海外厂商」表格（OpenAI Admin Key、Gemini Cloud 账单、xAI 等）。
 
 **Q：自动刷新会不会消耗 Token？**
 余额查询仅调用官方轻量查询接口（如 `/user/balance`、`/v1/models`），不调用对话模型，不产生计费消耗。

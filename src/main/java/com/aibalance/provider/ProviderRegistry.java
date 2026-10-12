@@ -35,6 +35,8 @@ public final class ProviderRegistry {
         providers.put(ProviderId.BAILIAN_TOKENPLAN, new ModelStudioTokenPlanProvider(http));
         // 合并入口：账户余额 + 当月账单（阿里云官方 SDK）
         providers.put(ProviderId.BAILIAN_ACCOUNT, new AliyunAccountProvider(http));
+        // 国际站入口：同一实现，endpoint 按入口解析（business.ap-southeast-1.aliyuncs.com）
+        providers.put(ProviderId.BAILIAN_ACCOUNT_INTL, new AliyunAccountProvider(http));
         // 旧入口枚举已合并进 BAILIAN_ACCOUNT；仍映射到同一实现，兼容启动迁移前的旧配置
         providers.put(ProviderId.BAILIAN_BILLING, new AliyunAccountProvider(http));
         providers.put(ProviderId.QWEN_ACCOUNT, new AliyunAccountProvider(http));

@@ -3,6 +3,7 @@ package com.aibalance.ui;
 import com.aibalance.model.AccountConfig;
 import com.aibalance.model.BalanceSnapshot;
 import com.aibalance.model.ProviderId;
+import com.aibalance.provider.AliyunAccountProvider;
 import com.aibalance.provider.ProviderRegistry;
 import com.aibalance.service.BalanceMonitor;
 import com.aibalance.service.ConfigStore;
@@ -146,17 +147,26 @@ public final class App extends Application {
         ConfigStore configStore = new ConfigStore();
         ConfigStore.AppConfig cfg = configStore.load();
 
-        // 合并迁移：旧「阿里云百炼·官方账单 / 账户余额」两个入口已合并为
-        // 「阿里云百炼·账户余额与账单」（BAILIAN_ACCOUNT），旧配置自动迁移并保存
+        // 站点迁移：
+        // 1) 旧「阿里云百炼·官方账单 / 账户余额」隐藏入口 → 合并后的账户余额与账单入口；
+        // 2) 配置里指向国际站（非 cn- 地域、-intl 域名或 ap-southeast 端点）的账户 → 国际站入口。
+        // 迁移后清空 Base URL，让两个入口各自使用官方 endpoint；自定义 / 代理地址原样保留。
         boolean migratedAliyun = false;
         for (AccountConfig acc : cfg.getAccounts()) {
             ProviderId p = acc.getProviderId();
-            if (p.isHidden()) {
-                acc.setProviderId(ProviderId.BAILIAN_ACCOUNT);
-                // 旧 URL 配置自动换算为 Region：已是 region 形式则保留原值
-                String base = acc.getBaseUrl();
-                if (base != null && base.contains("://")) {
-                    acc.setBaseUrl("cn-beijing");
+            boolean legacyMerged = p.isHidden();
+            if (!legacyMerged && p != ProviderId.BAILIAN_ACCOUNT) {
+                continue;
+            }
+            String base = acc.getBaseUrl() == null ? "" : acc.getBaseUrl().strip();
+            boolean international = AliyunAccountProvider.looksInternational(base);
+            boolean customEndpoint = base.contains("://")
+                    && !base.toLowerCase(java.util.Locale.ROOT).contains("aliyuncs.com");
+            if (legacyMerged || international) {
+                acc.setProviderId(international
+                        ? ProviderId.BAILIAN_ACCOUNT_INTL : ProviderId.BAILIAN_ACCOUNT);
+                if (!customEndpoint) {
+                    acc.setBaseUrl("");
                 }
                 migratedAliyun = true;
             }

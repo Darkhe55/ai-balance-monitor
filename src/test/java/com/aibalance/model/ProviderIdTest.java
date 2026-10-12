@@ -29,8 +29,25 @@ class ProviderIdTest {
         assertTrue(ProviderId.BAILIAN_BILLING.isHidden());
         assertTrue(ProviderId.QWEN_ACCOUNT.isHidden());
         assertEquals(false, ProviderId.BAILIAN_ACCOUNT.isHidden());
-        // 合并入口无 URL 默认值（配置为 Region）
-        assertEquals(false, ProviderId.BAILIAN_ACCOUNT.hasDefaultBaseUrl());
+        // 中国站 / 国际站已拆成两个独立入口，各自预填官方 endpoint（不再使用 Region 字段语义）
+        assertEquals("https://business.aliyuncs.com", ProviderId.BAILIAN_ACCOUNT.getDefaultBaseUrl());
+        assertEquals("https://business.ap-southeast-1.aliyuncs.com",
+                ProviderId.BAILIAN_ACCOUNT_INTL.getDefaultBaseUrl());
+        assertEquals(ProviderId.Region.DOMESTIC, ProviderId.BAILIAN_ACCOUNT.getRegion());
+        assertEquals(ProviderId.Region.OVERSEAS, ProviderId.BAILIAN_ACCOUNT_INTL.getRegion());
+    }
+
+    @Test
+    void aliyunIntlEntryMatchesChinaEntryShape() {
+        // 国际站入口与中国站同形（AccessKey ID/Secret 双凭证 + 余额/账单能力），仅站点不同
+        assertEquals("阿里云百炼·账户余额与账单（国际站）", ProviderId.BAILIAN_ACCOUNT_INTL.getDisplayName());
+        assertEquals("阿里云 AccessKey ID", ProviderId.BAILIAN_ACCOUNT_INTL.getKeyFieldLabel());
+        assertEquals("阿里云 AccessKey Secret", ProviderId.BAILIAN_ACCOUNT_INTL.getSecretFieldLabel());
+        assertTrue(ProviderId.BAILIAN_ACCOUNT_INTL.getKeyPrompt().contains("LTAI"));
+        assertTrue(ProviderId.BAILIAN_ACCOUNT_INTL.getSecretPrompt().contains("AccessKey Secret"));
+        assertTrue(ProviderId.BAILIAN_ACCOUNT_INTL.capabilities().contains(ProviderCapability.BALANCE));
+        assertTrue(ProviderId.BAILIAN_ACCOUNT_INTL.capabilities().contains(ProviderCapability.COST));
+        assertEquals(false, ProviderId.BAILIAN_ACCOUNT_INTL.isHidden());
     }
 
     @Test

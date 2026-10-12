@@ -47,17 +47,32 @@ public enum ProviderId {
             "订阅套餐 · Token Plan Credits", "百炼 Token Plan 账户", Region.DOMESTIC,
             BillingMode.SUBSCRIPTION),
     /**
-     * 阿里云百炼·账户余额与账单（合并入口）：经阿里云官方 SDK 调用 BssOpenApi
-     * （QueryAccountBalance + QueryAccountBill），endpoint 按 Service=BssOpenApi + Region 解析。
-     * 凭证填 AccessKey ID / AccessKey Secret，Region 填阿里云地域（默认 cn-beijing）。
+     * 阿里云百炼·账户余额与账单（中国站）：经阿里云官方 SDK 调用 BssOpenApi
+     * （QueryAccountBalance + QueryAccountBill），endpoint 为中国站 business.aliyuncs.com。
+     * 凭证填中国站 AccessKey ID / AccessKey Secret；国际站账号请用 {@link #BAILIAN_ACCOUNT_INTL}。
      */
-    BAILIAN_ACCOUNT("阿里云百炼·账户余额与账单", "#FF6A00", "",
-            "账号授权方式：填阿里云 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。"
+    BAILIAN_ACCOUNT("阿里云百炼·账户余额与账单（中国站）", "#FF6A00", "https://business.aliyuncs.com",
+            "账号授权方式：填阿里云中国站 AccessKey ID + AccessKey Secret（阿里云控制台右上角头像 → AccessKey 管理创建）。"
                     + "安全建议：创建 RAM 子账号，仅授权 BSS 只读权限（AliyunBSSReadOnlyAccess），勿用主账号密钥。"
-                    + "Region 填阿里云地域（默认 cn-beijing；国际站地域如 ap-southeast-1 自动使用国际版端点）。"
+                    + "查询走中国站 BssOpenApi（business.aliyuncs.com）；国际站账号的 AccessKey 在中国站会报 "
+                    + "InvalidAccessKeyId.NotFound（HTTP 404），请改用「阿里云百炼·账户余额与账单（国际站）」入口。"
                     + "工具经阿里云官方 SDK（BssOpenApi 2017-12-14）调用 QueryAccountBalance 与 QueryAccountBill，"
                     + "合并显示账户余额、可用现金、信控额度与当月账单费用明细。",
-            "云账户余额 + 当月账单 · 官方 SDK", "阿里云账户", Region.DOMESTIC,
+            "云账户余额 + 当月账单 · 官方 SDK", "阿里云账户（中国站）", Region.DOMESTIC,
+            BillingMode.PAY_AS_YOU_GO),
+    /**
+     * 阿里云百炼·账户余额与账单（国际站）：同一套 BssOpenApi 接口，endpoint 为国际站
+     * business.ap-southeast-1.aliyuncs.com（官方「服务接入点」文档：海外地域统一使用该地址）。
+     * 国际站 AccessKey 与国内站 AccessKey 互不通用。
+     */
+    BAILIAN_ACCOUNT_INTL("阿里云百炼·账户余额与账单（国际站）", "#FF6A00",
+            "https://business.ap-southeast-1.aliyuncs.com",
+            "账号授权方式：填阿里云国际站（alibabacloud.com）AccessKey ID + AccessKey Secret（控制台右上角头像 → AccessKey 管理创建）。"
+                    + "国际站 AccessKey 在中国站接口上会报 InvalidAccessKeyId.NotFound（HTTP 404），必须使用本入口。"
+                    + "安全建议：创建 RAM 子账号，仅授权 BSS 只读权限，勿用主账号密钥。"
+                    + "查询走国际站 BssOpenApi（business.ap-southeast-1.aliyuncs.com），接口与中国站一致，"
+                    + "返回账户余额、可用现金、信控额度与当月账单费用明细（币种随账号，如 USD）。",
+            "云账户余额 + 当月账单 · 官方 SDK（国际站）", "阿里云账户（国际站）", Region.OVERSEAS,
             BillingMode.PAY_AS_YOU_GO),
     /** @deprecated 已合并进 {@link #BAILIAN_ACCOUNT}，仅保留枚举值兼容旧配置文件，UI 不再展示。 */
     @Deprecated
@@ -80,7 +95,7 @@ public enum ProviderId {
             "云账户余额 · 官方接口", "腾讯云账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
     BAIDU("百度千帆", "#2932E1", "https://billing.baidubce.com",
-            "账号授权方式：填百度智能云 Access Key ID + Secret Access Key（百度智能云控制台 → 安全认证 → 访问密钥 AK/SK 创建）。安全建议：子账号仅授权余额查询权限，无需账单权限。官方接口返回现金余额（元）。",
+            "账号授权方式：填百度智能云 Access Key ID + Secret Access Key（百度智能云控制台 → 安全认证 → 访问密钥 AK/SK 创建）。安全建议：子账号仅授权财务只读权限（BCE_FINANCE_READ），无需账单权限。官方接口返回现金余额（元）。",
             "云账户余额 · 官方接口", "百度智能云账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
     STEPFUN("阶跃星辰 StepFun", "#2E6BE6", "https://api.stepfun.com",
@@ -222,7 +237,8 @@ public enum ProviderId {
      */
     public String getKeyFieldLabel() {
         return switch (this) {
-            case BAILIAN_ACCOUNT, BAILIAN_BILLING, QWEN_ACCOUNT, BAILIAN_TOKENPLAN -> "阿里云 AccessKey ID";
+            case BAILIAN_ACCOUNT, BAILIAN_ACCOUNT_INTL, BAILIAN_BILLING, QWEN_ACCOUNT, BAILIAN_TOKENPLAN ->
+                    "阿里云 AccessKey ID";
             case VOLCENGINE -> "火山引擎 AccessKey ID";
             case TENCENT -> "腾讯云 SecretId";
             case BAIDU -> "百度智能云 Access Key ID";
@@ -234,7 +250,8 @@ public enum ProviderId {
     /** 凭证字段 2 的显示标签（云签名厂商的 Secret 官方参数名，默认 "Secret"）。 */
     public String getSecretFieldLabel() {
         return switch (this) {
-            case BAILIAN_ACCOUNT, BAILIAN_BILLING, QWEN_ACCOUNT, BAILIAN_TOKENPLAN -> "阿里云 AccessKey Secret";
+            case BAILIAN_ACCOUNT, BAILIAN_ACCOUNT_INTL, BAILIAN_BILLING, QWEN_ACCOUNT, BAILIAN_TOKENPLAN ->
+                    "阿里云 AccessKey Secret";
             case VOLCENGINE -> "火山引擎 Secret Access Key";
             case TENCENT -> "腾讯云 SecretKey";
             case BAIDU -> "百度智能云 Secret Access Key";
@@ -245,7 +262,7 @@ public enum ProviderId {
     /** 凭证字段 1 的输入占位提示：官方参数名示例 + 获取位置（掩码框内灰字）。 */
     public String getKeyPrompt() {
         return switch (this) {
-            case BAILIAN_ACCOUNT, BAILIAN_BILLING, QWEN_ACCOUNT, BAILIAN_TOKENPLAN ->
+            case BAILIAN_ACCOUNT, BAILIAN_ACCOUNT_INTL, BAILIAN_BILLING, QWEN_ACCOUNT, BAILIAN_TOKENPLAN ->
                     "LTAI…（阿里云控制台右上角头像 → AccessKey 管理；推荐用 RAM 只读子账号密钥）";
             case VOLCENGINE ->
                     "AKLT…（火山引擎控制台右上角头像 → API 访问密钥）";
@@ -264,7 +281,7 @@ public enum ProviderId {
     /** 凭证字段 2（Secret）的输入占位提示；非双凭证厂商返回 null（该行不显示）。 */
     public String getSecretPrompt() {
         return switch (this) {
-            case BAILIAN_ACCOUNT, BAILIAN_BILLING, QWEN_ACCOUNT, BAILIAN_TOKENPLAN ->
+            case BAILIAN_ACCOUNT, BAILIAN_ACCOUNT_INTL, BAILIAN_BILLING, QWEN_ACCOUNT, BAILIAN_TOKENPLAN ->
                     "与上方 AccessKey ID 配对的 AccessKey Secret（创建时仅完整显示一次，妥善保存）";
             case VOLCENGINE ->
                     "与上方 AccessKey ID 配对的 Secret Access Key";
@@ -333,7 +350,7 @@ public enum ProviderId {
                     ProviderCapability.COST, ProviderCapability.QUOTA);
             case BAILIAN_TOKENPLAN -> ProviderCapability.set(
                     ProviderCapability.BALANCE, ProviderCapability.QUOTA);
-            case BAILIAN_ACCOUNT -> ProviderCapability.set(
+            case BAILIAN_ACCOUNT, BAILIAN_ACCOUNT_INTL -> ProviderCapability.set(
                     ProviderCapability.BALANCE, ProviderCapability.COST);
             case BAILIAN_BILLING -> ProviderCapability.set(ProviderCapability.COST);
             case QWEN_ACCOUNT -> ProviderCapability.set(ProviderCapability.BALANCE);
