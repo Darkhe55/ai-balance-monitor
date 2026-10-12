@@ -86,11 +86,14 @@ tasks.register('buildDist') {
         if (runtimeDir.exists()) {
             delete runtimeDir
         }
+        // java.naming / java.xml / java.sql: required by the Aliyun SDK (ApacheHttpClient SSL
+        // factory + JAXB response parsing). A jlink runtime without java.naming makes the
+        // SDK throw NoClassDefFoundError: javax/naming/NamingException (silent failure in exe).
         exec {
             executable jlinkExe
             args '--module-path', mpathDir.absolutePath,
                     '--add-modules',
-                    'java.base,java.desktop,java.logging,jdk.crypto.ec,jdk.unsupported,jdk.localedata,javafx.controls',
+                    'java.base,java.desktop,java.logging,java.naming,java.xml,java.sql,jdk.crypto.ec,jdk.unsupported,jdk.localedata,javafx.controls',
                     '--output', runtimeDir.absolutePath,
                     '--strip-debug', '--compress=2', '--no-header-files', '--no-man-pages'
         }

@@ -239,6 +239,14 @@ public final class AliyunAccountProvider implements BalanceProvider {
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                             BalanceSnapshot.Status.ERROR)
                     .message("解析失败: " + e.getClass().getSimpleName()).build();
+        } catch (LinkageError e) {
+            // jlink 精简运行时缺模块（如 java.naming）时 SDK 会抛 NoClassDefFoundError。
+            // 它是 Error 而非 Exception，若不单独捕获会静默失败且不留任何日志。
+            HttpSupport.logDiagnostic("aliyun-account failed linkage=" + e);
+            return BalanceSnapshot.of(pid, config.getId(), config.getName(),
+                            BalanceSnapshot.Status.ERROR)
+                    .message("运行时缺少阿里云 SDK 所需模块: " + e.getMessage()
+                            + "（发行版需包含 java.naming 等模块）").build();
         }
     }
 
