@@ -1,7 +1,7 @@
 # AI 余额监控（ai-balance-monitor）
 
 一个基于 **Java 17 + JavaFX** 的桌面工具：接入市面上主流 AI 服务的 API，**实时查看账户余额与用量配额**。
-界面遵循统一设计准则：内嵌 **Geist** 字体、off-black 中性底 + 单一蓝色强调、双层嵌套卡片、统一圆角体系、只做有动机的动效（无 AI 味、无 em-dash、无装饰字形），并支持**明暗双主题**一键切换。无账户时展示**呼吸 + 涟漪波动动画**的空状态插图，界面切换带缓和过渡动画。
+
 
 ![暗色空状态](docs/empty-state-dark.png)
 
@@ -84,10 +84,17 @@
 
 ## 快速开始
 
-本仓库只提供**可完整构建的源码**：`build/`、`dist/`、`*.zip` 等编译产物与发行包均未提交，
-克隆后按下述步骤自行构建即可。构建需 **JDK 17**（Gradle Toolchain 会强制使用 17）、Windows 10/11（发行版打包脚本调用 `jlink.exe` / `javaw.exe`）。
+本仓库只提供**可完整构建的源码**：`build/`、`dist/`、`*.zip` 等编译产物均未提交，可直接运行的自包含发行版以 **Release 附件**形式提供。
 
-### 方式一：源码运行（需 JDK 17+）
+### 方式一：下载发行版（推荐，无需任何环境）
+
+到 [Releases](https://github.com/Darkhe55/ai-balance-monitor/releases) 下载 `ai-balance-monitor-<版本>-windows-x64.zip`，解压后双击 `AI余额监控.exe`。
+
+该包为 **jpackage app-image 自包含应用**：内嵌 jlink 精简运行时（含 JavaFX 原生库与 Conscrypt），**不依赖系统是否安装 JDK/JRE**，双击即用、无控制台窗口；整个文件夹可复制到任意 Windows 10/11 64 位机器运行。
+
+### 方式二：源码运行（需 JDK 17+）
+
+构建需 **JDK 17**（Gradle Toolchain 会强制使用 17）与 Windows 10/11（发行版打包脚本调用 `jlink.exe` / `javaw.exe`）：
 
 ```bat
 git clone git@github.com:Darkhe55/ai-balance-monitor.git
@@ -98,7 +105,7 @@ gradlew.bat build      :: 编译并执行全部单元测试
 gradlew.bat test       :: 仅执行单元测试
 ```
 
-### 方式二：生成自包含发行版（双击即用，无需安装任何环境）
+### 方式三：自行生成自包含发行版（双击即用，无需安装任何环境）
 
 ```bat
 gradlew.bat buildDist
@@ -111,8 +118,8 @@ gradlew.bat buildDist
 dist\ai-balance-monitor\ai-balance-monitor.bat
 ```
 
-如需**无控制台窗口的单文件 exe**（`AI余额监控.exe`），在 `buildDist` 产出目录之上用 JDK 自带的 `jpackage`
-指向 `dist\ai-balance-monitor` 打包即可；该 exe 同样是构建产物，不提交到本仓库。
+如需**无控制台窗口的单文件 exe**（`AI余额监控.exe`，即 Release 附件的形态），在 `buildDist` 产出目录之上用 JDK 自带的
+`jpackage` 指向 `dist\ai-balance-monitor` 打包即可（`app-image` + `--app-version`）；该 exe 同样是构建产物，不提交到本仓库。
 
 ## 使用说明
 
