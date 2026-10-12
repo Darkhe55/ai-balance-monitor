@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.aibalance'
-version = '0.1.0'
+version = '0.1.1'
 description = 'AI 套餐余额监控 - 实时查看主流 AI 服务的 API 余额与用量配额'
 
 repositories {
