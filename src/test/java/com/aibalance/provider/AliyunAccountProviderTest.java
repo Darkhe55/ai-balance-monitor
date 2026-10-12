@@ -66,6 +66,42 @@ class AliyunAccountProviderTest {
     }
 
     @Test
+    void endpointHostStripsSchemeForSdkAddEndpoint() {
+        // addEndpoint 只接受纯域名；带 scheme 会让 SDK 拼出 http://https://… 而连接失败
+        assertEquals("business.aliyuncs.com", AliyunAccountProvider.endpointHost("https://business.aliyuncs.com"));
+        assertEquals("business.aliyuncs.com", AliyunAccountProvider.endpointHost("https://business.aliyuncs.com/"));
+        assertEquals("business.ap-southeast-1.aliyuncs.com",
+                AliyunAccountProvider.endpointHost("https://business.ap-southeast-1.aliyuncs.com"));
+        assertEquals("proxy.example.com", AliyunAccountProvider.endpointHost("http://proxy.example.com/any/path"));
+        assertEquals("business.aliyuncs.com", AliyunAccountProvider.endpointHost("business.aliyuncs.com"));
+    }
+
+    @Test
+    void bridgeUrlNormalizationForcesHttpsAndRepairsMalformedUrl() {
+        String expected = "https://business.aliyuncs.com/?Action=QueryAccountBalance";
+        // SDK 注册 endpoint 的默认协议是 HTTP → 统一升级为 HTTPS（本工具禁止明文请求）
+        assertEquals(expected, AliyunAccountProvider.HttpBridge.normalizeBridgeUrl(
+                "http://business.aliyuncs.com/?Action=QueryAccountBalance"));
+        // endpoint 被误设成带 scheme 的 URL 时 SDK 拼出的畸形地址
+        assertEquals(expected, AliyunAccountProvider.HttpBridge.normalizeBridgeUrl(
+                "http://https://business.aliyuncs.com/?Action=QueryAccountBalance"));
+        // 已是 HTTPS 或为 null 时保持原样
+        assertEquals(expected, AliyunAccountProvider.HttpBridge.normalizeBridgeUrl(expected));
+        assertEquals(null, AliyunAccountProvider.HttpBridge.normalizeBridgeUrl(null));
+    }
+
+    @Test
+    void sanitizeStripsCredentialsFromDiagnostics() {
+        String raw = "Server unreachable: connection http://x/?AccessKeyId=LTAI5tSecretLooking123"
+                + "&Signature=abc%2Bdef%3D failed";
+        String safe = AliyunAccountProvider.sanitize(raw);
+        assertEquals(false, safe.contains("LTAI5tSecretLooking123"));
+        assertEquals(false, safe.contains("abc%2Bdef%3D"));
+        assertTrue(safe.contains("AccessKeyId=***"));
+        assertTrue(safe.contains("Signature=***"));
+    }
+
+    @Test
     void fromBalanceJsonParsesBalance() throws Exception {
         // 官方实测结构：字段为字符串数字，信控字段名 CreditAmount
         String body = """

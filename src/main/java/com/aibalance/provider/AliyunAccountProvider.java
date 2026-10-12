@@ -13,6 +13,7 @@ import com.aliyuncs.http.HttpRequest;
 import com.aliyuncs.http.HttpResponse;
 import com.aliyuncs.http.IHttpClient;
 import com.aliyuncs.http.MethodType;
+import com.aliyuncs.http.ProtocolType;
 import com.aliyuncs.profile.DefaultProfile;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -138,9 +139,11 @@ public final class AliyunAccountProvider implements BalanceProvider {
             String region = resolveRegion(baseUrlOrRegion, pid);
             String endpoint = resolveEndpoint(baseUrlOrRegion, pid);
 
-            // 官方 SDK：profile 注册 AccessKey 凭证 + Region，并按 Service=BssOpenApi 显式注册 endpoint
+            // 官方 SDK：profile 注册 AccessKey 凭证 + Region，并按 Service=BssOpenApi 显式注册 endpoint。
+            // 注意：addEndpoint 只接受纯域名；传带 https:// 的完整 URL 会让 SDK 把 scheme 当 host，
+            // 拼出 http://https://… 的畸形地址而连接失败（历史 bug）。
             DefaultProfile profile = DefaultProfile.getProfile(region, ak, sk);
-            DefaultProfile.addEndpoint(region, PRODUCT, endpoint);
+            DefaultProfile.addEndpoint(region, PRODUCT, endpointHost(endpoint));
             // 注入自定义 HTTP 客户端：SDK 签名后经 HttpBridge 走本工具统一网络通道
             HttpClientConfig clientCfg = HttpClientConfig.getDefault();
             clientCfg.setCustomClientClassName(HttpBridge.class.getName());
@@ -149,9 +152,11 @@ public final class AliyunAccountProvider implements BalanceProvider {
 
             BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, config.getId(), config.getName());
 
-            // 1) 账户余额 QueryAccountBalance
-            HttpResponse balResp = client.doAction(
-                    new com.aliyuncs.bssopenapi.model.v20171214.QueryAccountBalanceRequest());
+            // 1) 账户余额 QueryAccountBalance（显式 HTTPS：SDK 注册 endpoint 的默认协议是 HTTP）
+            com.aliyuncs.bssopenapi.model.v20171214.QueryAccountBalanceRequest balReq =
+                    new com.aliyuncs.bssopenapi.model.v20171214.QueryAccountBalanceRequest();
+            balReq.setSysProtocol(ProtocolType.HTTPS);
+            HttpResponse balResp = client.doAction(balReq);
             HttpSupport.logDiagnostic("aliyun-account action=QueryAccountBalance region=" + region
                     + " status=" + balResp.getStatus() + " body=" + truncate(bodyOf(balResp)));
             if (balResp.getStatus() == 401 || balResp.getStatus() == 403) {
@@ -183,7 +188,9 @@ public final class AliyunAccountProvider implements BalanceProvider {
                         new com.aliyuncs.bssopenapi.model.v20171214.QueryAccountBillRequest();
                 String cycle = LocalDate.now().format(BILL_CYCLE);
                 billReq.setBillingCycle(cycle);
-                billReq.setGranularity("MONTH");
+                // 官方要求 MONTHLY / DAILY（传 MONTH 会返回 InvalidParameter，账单明细会静默丢失）
+                billReq.setGranularity("MONTHLY");
+                billReq.setSysProtocol(ProtocolType.HTTPS);
                 HttpResponse billResp = client.doAction(billReq);
                 HttpSupport.logDiagnostic("aliyun-account action=QueryAccountBill billingCycle=" + cycle
                         + " status=" + billResp.getStatus() + " body=" + truncate(bodyOf(billResp)));
@@ -199,6 +206,9 @@ public final class AliyunAccountProvider implements BalanceProvider {
 
             return afterBalance.build();
         } catch (com.aliyuncs.exceptions.ClientException e) {
+            // 失败也写诊断日志（脱敏），便于排查 AK 无效 / 签名 / 端点等问题
+            HttpSupport.logDiagnostic("aliyun-account failed errCode=" + e.getErrCode()
+                    + " errMsg=" + sanitize(e.getErrMsg()));
             // ServerException 是 ClientException 的子类，统一在此处理
             if (e instanceof com.aliyuncs.exceptions.ServerException se) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
@@ -218,14 +228,44 @@ public final class AliyunAccountProvider implements BalanceProvider {
                             BalanceSnapshot.Status.ERROR)
                     .message("阿里云 SDK 调用失败: " + e.getErrCode() + " " + e.getErrMsg()).build();
         } catch (HttpSupport.HttpFailure e) {
+            HttpSupport.logDiagnostic("aliyun-account failed network=" + e.isNetwork()
+                    + " msg=" + sanitize(e.getMessage()));
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                             e.isNetwork() ? BalanceSnapshot.Status.TIMEOUT : BalanceSnapshot.Status.ERROR)
                     .message(e.getMessage()).build();
         } catch (Exception e) {
+            HttpSupport.logDiagnostic("aliyun-account failed ex=" + e.getClass().getName()
+                    + " msg=" + sanitize(e.getMessage()));
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                             BalanceSnapshot.Status.ERROR)
                     .message("解析失败: " + e.getClass().getSimpleName()).build();
         }
+    }
+
+    /**
+     * 从 Base URL / endpoint 取出官方 SDK {@code addEndpoint} 需要的纯域名。
+     * addEndpoint 只接受 host（如 business.aliyuncs.com）；若传入带 scheme 的完整 URL，
+     * SDK 会把 scheme 一起当 host，拼出 {@code http://https://business.aliyuncs.com/…} 而连接失败。
+     */
+    static String endpointHost(String endpoint) {
+        String s = endpoint == null ? "" : endpoint.strip();
+        int scheme = s.indexOf("://");
+        if (scheme >= 0) {
+            s = s.substring(scheme + 3);
+        }
+        int slash = s.indexOf('/');
+        if (slash >= 0) {
+            s = s.substring(0, slash);
+        }
+        return s;
+    }
+
+    /** 诊断日志脱敏：抹掉错误消息里 URL 附带的 AccessKeyId / Signature / Token 等参数值。 */
+    static String sanitize(String message) {
+        if (message == null) {
+            return "";
+        }
+        return message.replaceAll("(?i)(AccessKeyId|Signature|SecurityToken|Secret)[=:%][^&\\s,)]*", "$1=***");
     }
 
     /** 解析 QueryAccountBalance 响应并合并进快照；接口报错返回 null。 */
@@ -374,17 +414,30 @@ public final class AliyunAccountProvider implements BalanceProvider {
                 throw new IllegalStateException("阿里云 SDK 网络通道未初始化");
             }
             try {
-                Map<String, String> headers = request.getSysHeaders() == null
-                        ? Map.of() : request.getSysHeaders();
+                String url = normalizeBridgeUrl(request.getSysUrl());
+                Map<String, String> headers = new java.util.LinkedHashMap<>();
+                if (request.getSysHeaders() != null) {
+                    headers.putAll(request.getSysHeaders());
+                }
+                // SDK 的 Content-Type 存在 httpContentType 字段而不是 sysHeaders：
+                // 不补齐会让 HttpSupport 按默认 application/json 发送 form 请求，网关解析不到参数
+                boolean hasContentType = headers.keySet().stream()
+                        .anyMatch(k -> k.equalsIgnoreCase("Content-Type"));
+                if (!hasContentType) {
+                    String contentType = request.getContentTypeValue(request.getHttpContentType(), "UTF-8");
+                    if (contentType != null && !contentType.isBlank()) {
+                        headers.put("Content-Type", contentType);
+                    }
+                }
                 HttpSupport.Response resp;
                 if (request.getSysMethod() == MethodType.GET) {
-                    resp = h.get(request.getSysUrl(), headers);
+                    resp = h.get(url, headers);
                 } else {
                     byte[] content = request.getHttpContent();
                     String body = content == null ? "" : new String(content, StandardCharsets.UTF_8);
-                    resp = h.post(request.getSysUrl(), headers, body);
+                    resp = h.post(url, headers, body);
                 }
-                HttpResponse out = new HttpResponse(request.getSysUrl());
+                HttpResponse out = new HttpResponse(url);
                 out.setStatus(resp.status());
                 byte[] bytes = resp.body() == null ? new byte[0] : resp.body().getBytes(StandardCharsets.UTF_8);
                 out.setHttpContent(bytes, "UTF-8", FormatType.RAW);
@@ -392,6 +445,25 @@ public final class AliyunAccountProvider implements BalanceProvider {
             } catch (Exception e) {
                 throw new IllegalStateException("阿里云 SDK 请求失败: " + e.getMessage(), e);
             }
+        }
+
+        /**
+         * SDK 请求 URL 归一化：本工具统一强制 HTTPS，而 SDK 注册 endpoint 的默认协议是 HTTP，
+         * 且 endpoint 若被误设成带 scheme 的完整 URL 会出现 {@code http://https://…} 畸形地址；
+         * 两种情况都在此修正，避免落到明文请求或被 HTTPS 策略直接拒绝。
+         */
+        static String normalizeBridgeUrl(String url) {
+            if (url == null) {
+                return null;
+            }
+            String s = url.strip();
+            while (s.startsWith("http://https://")) {
+                s = s.substring("http://".length());
+            }
+            if (s.startsWith("http://")) {
+                s = "https://" + s.substring("http://".length());
+            }
+            return s;
         }
 
         @Override
