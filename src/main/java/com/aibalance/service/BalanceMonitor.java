@@ -6,7 +6,6 @@ import com.aibalance.model.ProviderId;
 import com.aibalance.provider.BalanceProvider;
 import com.aibalance.provider.ProviderRegistry;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +16,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * 余额监控服务：
  * - 并行刷新所有已启用账户（固定线程池，互不阻塞）；
+ * - 单个账户完成后立即回调 UI 更新（先获取先显示）；
+ * - 全部完成后统一回调（更新最后刷新时间等全局状态）；
  * - 可选定时自动刷新（ScheduledExecutorService，可随时调整间隔）；
- * - 每个账户独立快照，单点失败不影响其他账户；
- * - 刷新结束后统一回调（UI 在此回调中刷新界面）。
+ * - 每个账户独立快照，单点失败不影响其他账户。
  */
 public final class BalanceMonitor {
 
@@ -41,7 +42,9 @@ public final class BalanceMonitor {
     private volatile long refreshIntervalSeconds = 60;
     private volatile boolean refreshing;
     private java.util.concurrent.ScheduledFuture<?> scheduledTask;
-    /** 自动刷新完成后的 UI 回调（在工作线程触发，UI 需自行转回 FX 线程）。 */
+    /** 单个快照更新后的 UI 回调（在工作线程触发，UI 需自行转回 FX 线程）。 */
+    private volatile Consumer<BalanceSnapshot> snapshotUpdateListener;
+    /** 全部刷新完成后的 UI 回调（在工作线程触发，UI 需自行转回 FX 线程）。 */
     private volatile Runnable refreshCompleteListener;
 
     public BalanceMonitor(ProviderRegistry registry) {
@@ -73,7 +76,12 @@ public final class BalanceMonitor {
         return refreshIntervalSeconds;
     }
 
-    /** 设置自动刷新完成后的 UI 回调。 */
+    /** 设置单个快照更新后的 UI 回调。 */
+    public void setSnapshotUpdateListener(Consumer<BalanceSnapshot> listener) {
+        this.snapshotUpdateListener = listener;
+    }
+
+    /** 设置全部刷新完成后的 UI 回调。 */
     public void setRefreshCompleteListener(Runnable listener) {
         this.refreshCompleteListener = listener;
     }
@@ -96,7 +104,9 @@ public final class BalanceMonitor {
     }
 
     /**
-     * 并行刷新全部账户。onDone 在所有账户完成后调用（在工作线程上执行，UI 需自行转回 FX 线程）。
+     * 并行刷新全部账户。
+     * 每个账户完成后立即触发 snapshotUpdateListener（先获取先显示）。
+     * onDone 在所有账户完成后调用（在工作线程上执行，UI 需自行转回 FX 线程）。
      */
     public void refreshAll(Runnable onDone) {
         if (refreshing) {
@@ -107,6 +117,9 @@ public final class BalanceMonitor {
         if (targets.isEmpty()) {
             lastRefreshAt.set(System.currentTimeMillis());
             refreshing = false;
+            if (refreshCompleteListener != null) {
+                refreshCompleteListener.run();
+            }
             onDone.run();
             return;
         }
@@ -114,7 +127,12 @@ public final class BalanceMonitor {
         for (AccountConfig acc : targets) {
             workers.submit(() -> {
                 try {
-                    snapshots.put(acc.getId(), checkOne(acc));
+                    BalanceSnapshot snap = checkOne(acc);
+                    snapshots.put(acc.getId(), snap);
+                    // 单个完成立即回调 UI 更新
+                    if (snapshotUpdateListener != null) {
+                        snapshotUpdateListener.accept(snap);
+                    }
                 } finally {
                     if (pending.decrementAndGet() == 0) {
                         lastRefreshAt.set(System.currentTimeMillis());
@@ -133,7 +151,11 @@ public final class BalanceMonitor {
     public void refreshOne(AccountConfig acc, Runnable onDone) {
         workers.submit(() -> {
             try {
-                snapshots.put(acc.getId(), checkOne(acc));
+                BalanceSnapshot snap = checkOne(acc);
+                snapshots.put(acc.getId(), snap);
+                if (snapshotUpdateListener != null) {
+                    snapshotUpdateListener.accept(snap);
+                }
             } finally {
                 onDone.run();
             }

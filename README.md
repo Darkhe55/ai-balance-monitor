@@ -11,9 +11,9 @@
 ## 功能特性
 
 - **一键接入主流 AI 服务（共 25 个入口）**：
-  - **国内**：DeepSeek、Kimi 月之暗面（中国区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站）、Kimi Coding 套餐、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单（中国站）、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound
-  - **海外**：Kimi（国际区）、MiniMax 海螺（国际站）、OpenAI（API Key / Admin Key）、Anthropic Claude、Google Gemini（API Key / Cloud 账单）、xAI Grok、阿里云百炼·账户余额与账单（国际站）
-  - **中转站**：OneAPI / NewAPI 网关、OpenRouter
+  - **国内**：DeepSeek、Kimi 月之暗面（中国区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站）、Kimi Coding 套餐、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单（中国站）、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound、Qoder（国内站）
+  - **海外**：Kimi（国际区）、MiniMax 海螺（国际站）、OpenAI（API Key / Admin Key）、Anthropic Claude、Google Gemini（API Key / Cloud 账单）、xAI Grok、阿里云百炼·账户余额与账单（国际站）、Qoder（国际站）
+  - **中转站**：OneAPI / NewAPI 网关、OpenRouter、CommandCode、OpenCode Go、ToAPIs、ZenMux
 - **服务选型弹窗（图标网格）**：添加/编辑账户时点击「服务」打开弹窗，各厂商以**官方 logo 图标卡片**网格展示，按 **国内厂商 / 海外厂商 / 中转站** 分区布局，中转站（OneAPI、OpenRouter）置于最下方；logo 资源离线打包，深色/浅色主题均正常显示，无 logo 的服务自动回退品牌色徽标
 - **实时刷新**：自动刷新（15 秒 / 30 秒 / 60 秒 / 5 分钟可调）或手动刷新；所有账户**并行查询、互不阻塞**
 - **每账户独立状态**：在线 / Key 无效 / 请求超时 / 查询失败 / 未配置，单点失败不影响其他卡片
@@ -50,6 +50,7 @@
 | 腾讯混元 | 计费 `DescribeAccountBalance`（`billing.tencentcloudapi.com`，TC3-HMAC-SHA256，SecretId/SecretKey） | 可用余额、现金余额、信用额度、冻结金额、欠费（金额单位为分） |
 | 百度千帆 | `POST /v1/finance/cash/balance`（`billing.baidubce.com`，bce-auth-v1，AK/SK） | 现金余额（元） |
 | 阶跃星辰 StepFun | 官方接口 `GET /v1/accounts` | 账户余额、累计充值、剩余赠送、账户类型（预付费/后付费） |
+| Qoder（国内站） | 官方 OpenAPI：PAT 兑换 Job Token 后 `GET /api/v2/quota/usage`（qoder.com.cn → 个人访问令牌） | 剩余 Credits、总配额、已用、赠额、当前套餐与到期时间（组织 Key 可展示组织资源包） |
 | 小米 MiMo | **双计费**（按量 Key 前缀 `sk-`；Token Plan 专属 Key + 专用地址 `https://token-plan-cn.xiaomimimo.com/v1`）均无公开余额/额度接口：`GET /v1/models` 校验 Key + 响应头速率配额（尽力） | Key 状态、计费形态标注、令牌/请求配额剩余（网关返回时展示）；额度数值需到控制台查看 |
 | 云知声 Unisound | **双计费**（按量 Key 前缀 `sk-`；Token Plan 专属 Key 前缀 `tp-`）均无公开余额/额度接口：同小米做法 | Key 状态、计费形态标注、令牌/请求配额剩余（网关返回时展示）；额度数值需到控制台查看 |
 
@@ -63,6 +64,7 @@
 | Google Gemini（API Key） | `GET /models?key=…` 校验 Key 有效性 | Key 状态、可用模型数；余额/预算请改用 Cloud 账单入口 |
 | Google Gemini（Cloud 账单） | Cloud Billing Budget API `GET …/budgets`：Base URL 需补全为 `…/v1/billingAccounts/{账单ID}`，凭证填 OAuth 访问令牌（`gcloud auth print-access-token`，约 1 小时有效） | 预算金额与花费 |
 | xAI / Grok | `GET /v1/billing/teams/{team_id}/prepaid/balance`（Management API Key；组织级 Key 需在「附加参数」填 `team_id`） | 预付余额与变动记录 |
+| Qoder（国际站） | 官方 OpenAPI：PAT 兑换 Job Token 后 `GET /api/v2/quota/usage`（qoder.com → Settings → Personal Access Tokens） | 剩余 Credits、总配额、已用、赠额、当前套餐与到期时间（组织 Key 可展示组织资源包） |
 | 阿里云百炼·账户余额与账单（国际站） | 同中国站接口（`QueryAccountBalance` + `QueryAccountBill`），国际站 endpoint `business.ap-southeast-1.aliyuncs.com`，填国际站 AccessKey ID/Secret；RAM 需 `AliyunFinanceConsoleReadOnlyAccess`。**国际站 AK 与国内站不通用**：用中国站 AK 调中国站接口会返回 `InvalidAccessKeyId.NotFound`（HTTP 404） | 账户余额、可用现金、信控额度 + 当月账单费用明细（币种随账号，如 USD） |
 
 ### 中转站 / 网关
@@ -71,6 +73,10 @@
 | --- | --- | --- |
 | OneAPI / NewAPI 网关 | 自定义 Base URL + `GET /api/user/self` | 剩余配额（按 1 USD = 500000 估算）、已用配额、累计请求 |
 | OpenRouter 中转 | 官方 `GET /api/v1/key` + `GET /api/v1/credits` | Key 额度上限/已用（limit/usage）、账户 Credits 余额、速率限制 |
+| CommandCode | 官方 `GET /alpha/whoami` + `/alpha/billing/credits` + `/alpha/billing/subscriptions`（`orgId` 自动带参） | 月度剩余 Credits、已购/赠送、5 小时与每周用量窗口、订阅套餐与周期结束时间 |
+| OpenCode Go | 官方 `GET /zen/go/v1/usage` | 5 小时/每周/每月套餐窗口剩余百分比与重置时间 |
+| ToAPIs | 官方 `GET /v1/balance` | 剩余余额、已用余额、Credits 与换算比例（不限量自动标注） |
+| ZenMux | 官方 Management API：`GET /api/v1/management/subscription/detail` + `GET /api/v1/management/payg/balance`（平台 Management API Key，非 PAYG/订阅 Key） | PAYG 余额、订阅套餐、5 小时/7 天窗口额度与每月上限 |
 
 > 另有 3 个已移除 / 已合并的旧入口（`BAILIAN`「阿里百炼·模型配额」、`BAILIAN_BILLING`、`QWEN_ACCOUNT`）仅为兼容早期配置文件而保留枚举值，界面不再展示；其中 `BAILIAN` 已移除的原因是：官方 `GET /api/v1/models/limits` 只返回模型限流配额（RPM/TPM），而模型 API Key 无法查询余额，账户余额必须用阿里云 AccessKey 走 BSS OpenAPI（即「账户余额与账单」入口），免费额度与用量统计则只有百炼 CLI / 控制台可见。旧配置启动时会自动迁移到「阿里云百炼·账户余额与账单」，迁移后需补填 AccessKey Secret。
 
@@ -124,7 +130,7 @@ build\dist\ai-balance-monitor\ai-balance-monitor.bat
 `jpackage` 指向 `build\dist\ai-balance-monitor` 打包即可（`app-image` + `--app-version`）；该 exe 同样是构建产物，不提交到本仓库。
 
 ```bat
-jpackage --type app-image --app-version 0.1.1 ^
+jpackage --type app-image --app-version 0.2.0 ^
   --runtime-image build\dist\ai-balance-monitor\runtime ^
   --input build\dist\ai-balance-monitor\app ^
   --main-jar ai-balance-monitor.jar ^

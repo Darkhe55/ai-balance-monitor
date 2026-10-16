@@ -80,6 +80,28 @@ final class SvgIcon {
         return render(32, Color.web("#E07BA8"));
     }
 
+    /**
+     * 窗口图标多尺寸列表（16/32/48/256）：Windows 任务栏/标题栏按当前 DPI 选择最合适的尺寸，
+     * 避免只提供大图时任务栏图标回退为默认 Java 图标。
+     */
+    static java.util.List<Image> windowIcons() {
+        Image base = windowIcon();
+        java.util.List<Image> out = new java.util.ArrayList<>();
+        for (int size : new int[]{16, 32, 48, 256}) {
+            out.add(size == (int) base.getWidth() ? base : scaled(base, size));
+        }
+        return out;
+    }
+
+    /** 将图片等比缩放到指定边长（平滑采样）。 */
+    private static Image scaled(Image src, int size) {
+        javafx.scene.canvas.Canvas canvas = new javafx.scene.canvas.Canvas(size, size);
+        javafx.scene.canvas.GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.setImageSmoothing(true);
+        gc.drawImage(src, 0, 0, size, size);
+        return canvas.snapshot(new SnapshotParameters(), null);
+    }
+
     /** JavaFX Image → AWT BufferedImage（托盘图标需要）。 */
     static BufferedImage toBufferedImage(Image img) {
         int w = (int) img.getWidth();

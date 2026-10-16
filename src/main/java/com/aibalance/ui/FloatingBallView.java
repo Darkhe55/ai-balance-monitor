@@ -227,7 +227,7 @@ public final class FloatingBallView {
         // 任务栏不显示由 WinTrayHacks.hideBallFromTaskbar 剔除，系统托盘常驻不受影响。
         stage.setAlwaysOnTop(true);
         stage.setTitle("AI 余额监控 · 悬浮球");
-        stage.getIcons().add(SvgIcon.render(32, Color.web("#E07BA8")));
+        stage.getIcons().addAll(SvgIcon.windowIcons());
 
         buildBall();
         buildPanel();

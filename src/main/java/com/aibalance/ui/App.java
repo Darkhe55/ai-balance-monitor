@@ -259,7 +259,13 @@ public final class App extends Application {
         mainView.setBallView(ballView);
         ballView.setAutoCollapseEnabled(cfg.isAutoCollapseBall());
 
-        // 自动刷新完成后：同时更新主界面卡片和悬浮球面板
+        // 单个快照更新后：立即刷新对应卡片（先获取先显示，不等待全部完成）
+        monitor.setSnapshotUpdateListener(snap -> javafx.application.Platform.runLater(() -> {
+            mainView.updateCardForAccount(snap.accountId());
+            ballView.refreshPanelIfOpen();
+        }));
+
+        // 全部刷新完成后：更新状态栏和最后刷新时间
         monitor.setRefreshCompleteListener(() -> javafx.application.Platform.runLater(() -> {
             mainView.updateCards();
             mainView.refreshStatusBar();
@@ -269,7 +275,7 @@ public final class App extends Application {
         stage.setTitle("AI 余额监控");
         stage.setMinWidth(880);
         stage.setMinHeight(600);
-        stage.getIcons().add(SvgIcon.windowIcon());
+        stage.getIcons().addAll(SvgIcon.windowIcons());
         stage.setScene(scene);
         final boolean snapshotMode = snapshot != null || snapshotDialog != null
                 || snapshotMenu != null || snapshotBall != null || snapshotPrefs != null
@@ -696,7 +702,7 @@ public final class App extends Application {
             return;
         }
         try {
-            tray.install(SvgIcon.render(32, javafx.scene.paint.Color.web("#E07BA8")),
+            tray.install(SvgIcon.windowIcon(),
                     () -> showMainFromBall(stage, ballView),
                     () -> exitApp(stage, ballView, tray));
         } catch (Throwable t) {
@@ -712,6 +718,8 @@ public final class App extends Application {
             stage.show();
             stage.toFront();
         }
+        // 窗口隐藏再显示后，Windows 可能丢失自定义任务栏图标，重新应用一次保证不回退默认
+        stage.getIcons().setAll(SvgIcon.windowIcons());
         // 切回主界面时触发一次刷新，确保数据最新
         mainView.refreshNow();
     }

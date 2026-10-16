@@ -52,8 +52,8 @@ public final class ProviderRegistry {
         providers.put(ProviderId.MODELSCOPE, new ModelScopeProvider(http));
         providers.put(ProviderId.OPENCODE_GO, new OpenCodeGoProvider(http, ProviderId.OPENCODE_GO));
         providers.put(ProviderId.COMMANDCODE, new CommandCodeProvider(http, ProviderId.COMMANDCODE));
-        providers.put(ProviderId.TOAPIS, new OneApiProvider(http, ProviderId.TOAPIS));
-        providers.put(ProviderId.ZENMUX, new OneApiProvider(http, ProviderId.ZENMUX));
+        providers.put(ProviderId.TOAPIS, new ToApisProvider(http, ProviderId.TOAPIS));
+        providers.put(ProviderId.ZENMUX, new ZenMuxProvider(http, ProviderId.ZENMUX));
     }
 
     public BalanceProvider forId(ProviderId id) {

@@ -109,16 +109,16 @@ public enum ProviderId {
             "填阶跃星辰 API Key（platform.stepfun.com → API Keys 创建）。官方余额接口 GET /v1/accounts 返回可用余额、充值金额与赠送金额。",
             "按量付费 · 官方余额", "StepFun 账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
-    QODER_CN("Qoder（国内站）", "#3B82F6", "https://openapi.qoder.sh",
+    QODER_CN("Qoder（国内站）", "#3B82F6", "https://openapi.qoder.com.cn",
             "账号授权方式：填 Qoder PAT（个人访问令牌，在 qoder.com.cn/account/integrations 创建）。"
-                    + "默认查询个人余额 GET /api/v3/user/status，返回剩余 Credits、已消耗与当前套餐。"
-                    + "如需查询组织用量：附加参数填 org_id=xxx; member_id=xxx，自动走 Teams API（api.qoder.com.cn）。",
+                    + "工具先兑换 Job Token，再调用官方额度接口 GET /api/v2/quota/usage，返回剩余 Credits、已用与当前套餐。"
+                    + "如需查询组织用量：附加参数填 org_id=xxx，自动展示组织资源包额度。",
             "订阅套餐 · Credits 余额", "Qoder 国内站账户", Region.DOMESTIC,
             BillingMode.SUBSCRIPTION),
     QODER_INTL("Qoder（国际站）", "#3B82F6", "https://openapi.qoder.sh",
             "账号授权方式：填 Qoder 国际站 PAT（qoder.com → Settings → Personal Access Tokens 创建，前缀 pt-）。"
-                    + "默认查询个人余额 GET /api/v3/user/status，返回剩余 Credits、已消耗与当前套餐。"
-                    + "如需查询组织用量：附加参数填 org_id=xxx; member_id=xxx，自动走 Teams API（api.qoder.com）。",
+                    + "工具先兑换 Job Token，再调用官方额度接口 GET /api/v2/quota/usage，返回剩余 Credits、已用与当前套餐。"
+                    + "如需查询组织用量：附加参数填 org_id=xxx，自动展示组织资源包额度。",
             "订阅套餐 · Credits 余额（国际站）", "Qoder 国际站账户", Region.OVERSEAS,
             BillingMode.SUBSCRIPTION),
     XIAOMI("小米 MiMo", "#FF6900", "https://api.xiaomimimo.com/v1",
@@ -178,15 +178,15 @@ public enum ProviderId {
             "套餐用量 · 剩余比例", "OpenCode Go", Region.GATEWAY,
             BillingMode.SUBSCRIPTION),
     COMMANDCODE("CommandCode", "#8B5CF6", "https://api.commandcode.ai",
-            "填 CommandCode API Key。官方接口查询信用额度和订阅信息。",
+            "填 CommandCode API 密钥（在 commandcode.ai 控制台创建）。官方接口查询信用额度和订阅信息。",
             "信用额度 · 订阅状态", "CommandCode", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO),
-    TOAPIS("ToAPIs", "#10B981", "",
-            "填 ToAPIs API 令牌。Base URL 填你的中转站地址。",
+    TOAPIS("ToAPIs", "#10B981", "https://toapis.cn",
+            "填 ToAPIs API 令牌。国内站默认地址 https://toapis.cn。",
             "网关配额 · 剩余额度", "ToAPIs", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO),
-    ZENMUX("ZenMux", "#F59E0B", "",
-            "填 ZenMux API 令牌。Base URL 填你的中转站地址。",
+    ZENMUX("ZenMux", "#F59E0B", "https://zenmux.ai",
+            "填 ZenMux 平台 API Key（ZenMux 控制台 → 平台/管理 创建 Management API Key；PAYG Key 或订阅套餐 Key 无法查询额度）。默认地址 https://zenmux.ai。",
             "网关配额 · 剩余额度", "ZenMux", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO);
 
@@ -317,6 +317,10 @@ public enum ProviderId {
                     "ya29…（本机执行 gcloud auth print-access-token 生成，约 1 小时有效）";
             case XAI ->
                     "（console.x.ai → Billing → API Keys 创建，注意不是模型调用 Key）";
+            case ZENMUX ->
+                    "（ZenMux 控制台 → 平台/管理 创建 Management API Key，不是 PAYG Key 或订阅 Key）";
+            case COMMANDCODE ->
+                    "（commandcode.ai 控制台创建 API 密钥）";
             default -> "sk-…（仅保存在本机）";
         };
     }

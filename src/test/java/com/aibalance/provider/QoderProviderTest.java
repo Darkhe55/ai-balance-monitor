@@ -1,66 +1,75 @@
 package com.aibalance.provider;
 
 import com.aibalance.model.BalanceSnapshot;
+import com.aibalance.model.ProviderCapability;
 import com.aibalance.model.ProviderId;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class QoderProviderTest {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     @Test
-    void parseUserStatusParsesCredits() throws Exception {
+    void parseUsageReadsUserQuota() throws Exception {
         String body = """
                 {
-                  "loggedIn": true,
-                  "totalCredits": 1500,
-                  "totalCharged": 500,
-                  "currentPlan": {"name": "Pro"}
+                  "userQuota": {"total": 5000, "used": 1200, "remaining": 3800,
+                                 "percentage": 24, "unit": "credits", "available": true},
+                  "addOnQuota": {"total": 100, "used": 20, "remaining": 80, "unit": "credits"},
+                  "totalUsagePercentage": 24,
+                  "isQuotaExceeded": false
                 }
                 """;
-        BalanceSnapshot snap = QoderProvider.parseUserStatus(
-                ProviderId.QODER_CN, "a", "n", MAPPER.readTree(body));
+        BalanceSnapshot snap = QoderProvider.parseUsage(
+                ProviderId.QODER_CN, "a", "n", MAPPER.readTree(body), null, false);
         assertEquals(BalanceSnapshot.Status.OK, snap.status());
+        assertEquals(3800.0, snap.primaryAmount(), 1e-9);
+        assertEquals(76.0, snap.percent(), 1e-9);
+        assertNotNull(snap.metricOf(ProviderCapability.QUOTA));
+        assertEquals(true, snap.details().stream().anyMatch(l -> l.label().equals("赠额 Credits")));
+    }
+
+    @Test
+    void parseUsagePrefersOrgResourcePackageInOrgMode() throws Exception {
+        String body = """
+                {
+                  "userQuota": {"total": 100, "used": 50, "remaining": 50, "unit": "credits"},
+                  "orgResourcePackage": {"total": 2000, "used": 500, "remaining": 1500, "unit": "credits"}
+                }
+                """;
+        BalanceSnapshot snap = QoderProvider.parseUsage(
+                ProviderId.QODER_CN, "a", "n", MAPPER.readTree(body), null, true);
         assertEquals(1500.0, snap.primaryAmount(), 1e-9);
-        assertNotNull(snap.metricOf(com.aibalance.model.ProviderCapability.QUOTA));
+        assertEquals(75.0, snap.percent(), 1e-9);
     }
 
     @Test
-    void parseUserStatusWrapsDataNode() throws Exception {
+    void parseUsageMissingQuotaKeepsNullAmount() throws Exception {
         String body = """
-                {"data": {"totalCredits": 800, "totalCharged": 200}}
+                {"userQuota": {}, "totalUsagePercentage": 0}
                 """;
-        BalanceSnapshot snap = QoderProvider.parseUserStatus(
-                ProviderId.QODER_INTL, "a", "n", MAPPER.readTree(body));
+        BalanceSnapshot snap = QoderProvider.parseUsage(
+                ProviderId.QODER_CN, "a", "n", MAPPER.readTree(body), null, false);
         assertEquals(BalanceSnapshot.Status.OK, snap.status());
-        assertEquals(800.0, snap.primaryAmount(), 1e-9);
+        assertNull(snap.primaryAmount());
     }
 
     @Test
-    void parseUserStatusMissingCreditsReturnsError() throws Exception {
-        String body = """
-                {"loggedIn": true}
+    void parseUsageReadsPlan() throws Exception {
+        String usage = """
+                {"userQuota": {"total": 5000, "used": 0, "remaining": 5000, "unit": "credits"}}
                 """;
-        BalanceSnapshot snap = QoderProvider.parseUserStatus(
-                ProviderId.QODER_CN, "a", "n", MAPPER.readTree(body));
-        assertEquals(BalanceSnapshot.Status.ERROR, snap.status());
-    }
-
-    @Test
-    void parseTeamsUsageParsesQuota() throws Exception {
-        String body = """
-                {
-                  "remainingCredits": 150.5,
-                  "totalCredits": 500.0
-                }
+        String plan = """
+                {"userType": "personal", "planTierName": "Pro", "endDate": "2026-11-01T00:00:00Z"}
                 """;
-        BalanceSnapshot snap = QoderProvider.parseTeamsUsage(
-                ProviderId.QODER_CN, "a", "n", MAPPER.readTree(body));
-        assertEquals(BalanceSnapshot.Status.OK, snap.status());
-        assertEquals(150.5, snap.primaryAmount(), 1e-9);
+        BalanceSnapshot snap = QoderProvider.parseUsage(
+                ProviderId.QODER_INTL, "a", "n", MAPPER.readTree(usage), MAPPER.readTree(plan), false);
+        assertEquals("Pro", snap.details().stream()
+                .filter(l -> l.label().equals("当前套餐")).findFirst().orElseThrow().value());
     }
 }

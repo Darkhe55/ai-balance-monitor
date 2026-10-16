@@ -123,4 +123,16 @@ class ProviderIdTest {
         assertEquals("OAuth 令牌", ProviderId.GEMINI_BILLING.getKeyFieldLabel());
         assertTrue(ProviderId.GEMINI_BILLING.getKeyPrompt().contains("gcloud auth print-access-token"));
     }
+
+    @Test
+    void zenMuxAndCommandCodeExplainCredentialType() {
+        // ZenMux：明确要求平台 Management API Key，而非 PAYG/订阅 Key
+        assertTrue(ProviderId.ZENMUX.getDescription().contains("平台 API Key"));
+        assertTrue(ProviderId.ZENMUX.getDescription().contains("Management API Key"));
+        assertTrue(ProviderId.ZENMUX.getDescription().contains("PAYG Key"));
+        assertTrue(ProviderId.ZENMUX.getKeyPrompt().contains("Management API Key"));
+        // CommandCode：使用 API 密钥
+        assertTrue(ProviderId.COMMANDCODE.getDescription().contains("API 密钥"));
+        assertTrue(ProviderId.COMMANDCODE.getKeyPrompt().contains("commandcode.ai"));
+    }
 }

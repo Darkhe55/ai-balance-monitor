@@ -556,6 +556,20 @@ public final class MainView extends BorderPane {
         updateEmptyState();
     }
 
+    /** 只更新指定账户的卡片（单个快照异步返回时调用，先获取先显示）。 */
+    public void updateCardForAccount(String accountId) {
+        AccountCard card = cards.get(accountId);
+        if (card == null) {
+            // 卡片还没创建，走完整刷新
+            updateCards();
+            return;
+        }
+        BalanceSnapshot snap = monitor.snapshotView().get(accountId);
+        if (snap != null) {
+            card.update(snap);
+        }
+    }
+
     private void updateEmptyState() {
         boolean hasActive = monitorAccounts().stream().anyMatch(AccountConfig::isEnabled);
         boolean show = !hasActive;

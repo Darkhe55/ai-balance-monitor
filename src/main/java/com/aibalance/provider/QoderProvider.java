@@ -10,13 +10,29 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 
 /**
- * Qoder：支持两种查询方式。
- * <p>
- * <b>方式三（个人用量，默认）：</b>GET {base}/api/v3/user/status，Bearer PAT 认证，
- * 返回 totalCredits/totalCharged/currentPlan。
- * <p>
- * <b>方式二（组织用量，需填附加参数）：</b>GET {base}/v1/organizations/{org_id}/members/{member_id}/usage-events，
- * 需要在附加参数中填 org_id=xxx; member_id=xxx。Base URL 需改为 https://api.qoder.com.cn。
+ * Qoder（国内 qoder.com.cn / 国际 qoder.com）专用 Provider。
+ *
+ * <p>Qoder 的 OpenAPI 不直接接受 PAT 作为 Bearer，需要先兑换短期 Job Token：
+ * <ol>
+ *   <li>POST {base}/api/v1/jobToken/exchange，body 为 {@code {"personal_token": "<PAT>"}}，
+ *       返回 {@code {"token": "<jobToken>"}}；</li>
+ *   <li>GET {base}/api/v2/quota/usage，Authorization: Bearer &lt;jobToken&gt;，
+ *       返回个人/组织/赠额的 Credits 余量；</li>
+ *   <li>GET {base}/api/v2/user/plan，返回当前套餐信息（可选）。</li>
+ * </ol>
+ *
+ * <p>响应结构（usage）：
+ * <pre>{@code
+ * {
+ *   "userQuota":           { "total": 5000, "used": 1200, "remaining": 3800,
+ *                            "percentage": 24, "unit": "credits", "available": true },
+ *   "addOnQuota":          { ... },
+ *   "orgResourcePackage":  { ... },
+ *   "totalUsagePercentage": 24,
+ *   "isQuotaExceeded":      false,
+ *   "expiresAt":            1780000000000
+ * }
+ * }</pre>
  */
 public final class QoderProvider implements BalanceProvider {
 
@@ -34,129 +50,207 @@ public final class QoderProvider implements BalanceProvider {
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                     BalanceSnapshot.Status.NOT_CONFIGURED).message("尚未填写 Qoder API Key").build();
         }
-        Map<String, String> extras = config.parseExtraParams();
-        String orgId = extras.get("org_id");
-        String memberId = extras.get("member_id");
-        boolean teamsMode = orgId != null && !orgId.isBlank()
-                && memberId != null && !memberId.isBlank();
 
         try {
-            String url;
-            if (teamsMode) {
-                // Teams 模式：使用官方 Teams API 域名
-                // 国内站 api.qoder.com.cn，国际站 api.qoder.com
-                String teamsBase = (pid == ProviderId.QODER_INTL)
-                        ? "https://api.qoder.com"
-                        : "https://api.qoder.com.cn";
-                url = teamsBase + "/v1/organizations/" + orgId.strip()
-                        + "/members/" + memberId.strip() + "/quota";
-            } else {
-                // 个人模式：国内站 openapi.qoder.com.cn，国际站 openapi.qoder.sh
-                String personalBase = (pid == ProviderId.QODER_INTL)
-                        ? "https://openapi.qoder.sh"
-                        : "https://openapi.qoder.com.cn";
-                url = personalBase + "/api/v3/user/status";
-            }
-            HttpSupport.Response resp = http.get(url,
-                    Map.of("Authorization", "Bearer " + config.getApiKey().strip(),
-                            "Accept", "application/json"));
-            HttpSupport.logDiagnostic("qoder " + (teamsMode ? "usage-events" : "user/status")
-                    + " status=" + resp.status() + " body=" + truncate(resp.body()));
-            if (resp.status() == 401) {
+            String base = resolveBase(config);
+            String jobToken = exchangeJobToken(base, config.getApiKey().strip());
+            if (jobToken == null) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.UNAUTHORIZED).message("API Key 无效或已过期").build();
             }
-            if (resp.status() == 403) {
+
+            HttpSupport.Response usageResp = http.get(base + "/api/v2/quota/usage",
+                    Map.of("Authorization", "Bearer " + jobToken, "Accept", "application/json"));
+            if (usageResp.status() == 401 || usageResp.status() == 403) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
-                        BalanceSnapshot.Status.UNAUTHORIZED)
-                        .message(teamsMode ? "Key 无权访问该组织成员用量（确认 Key 绑定组织一致）"
-                                : "Key 无权访问用户状态接口").build();
+                        BalanceSnapshot.Status.UNAUTHORIZED).message("API Key 无效或已过期").build();
             }
-            if (resp.status() != 200) {
+            if (usageResp.status() != 200) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.ERROR)
-                        .message("HTTP " + resp.status() + " " + DeepSeekProvider.firstError(resp.body())).build();
+                        .message("查询额度失败: HTTP " + usageResp.status()).build();
             }
-            JsonNode root = resp.bodyAsJson();
-            if (root == null) {
+            JsonNode usage = usageResp.bodyAsJson();
+            if (usage == null) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.ERROR).message("响应格式异常").build();
             }
-            return teamsMode
-                    ? parseTeamsUsage(pid, config.getId(), config.getName(), root)
-                    : parseUserStatus(pid, config.getId(), config.getName(), root);
+
+            // 可选：套餐信息（失败不影响主展示）
+            JsonNode plan = null;
+            try {
+                HttpSupport.Response planResp = http.get(base + "/api/v2/user/plan",
+                        Map.of("Authorization", "Bearer " + jobToken, "Accept", "application/json"));
+                if (planResp.status() == 200) {
+                    plan = planResp.bodyAsJson();
+                }
+            } catch (Exception ignored) {
+                // 套餐信息可选
+            }
+
+            return buildSnapshot(config, usage, plan);
         } catch (HttpSupport.HttpFailure e) {
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                             e.isNetwork() ? BalanceSnapshot.Status.TIMEOUT : BalanceSnapshot.Status.ERROR)
                     .message(e.getMessage()).build();
         } catch (Exception e) {
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
-                    BalanceSnapshot.Status.ERROR)
+                            BalanceSnapshot.Status.ERROR)
                     .message("解析失败: " + e.getClass().getSimpleName()).build();
         }
     }
 
-    /** 方式三：解析 user/status 响应。 */
-    static BalanceSnapshot parseUserStatus(ProviderId pid, String accountId, String accountName, JsonNode root) {
-        JsonNode data = root.has("data") ? root.get("data") : root;
-        Double totalCredits = JsonSupport.number(data, "totalCredits");
-        if (totalCredits == null) {
-            totalCredits = JsonSupport.number(data, "remainingCredits");
+    /** 兑换 Job Token；PAT 无效或兑换失败返回 null。 */
+    private String exchangeJobToken(String base, String pat) {
+        try {
+            HttpSupport.Response resp = http.post(base + "/api/v1/jobToken/exchange",
+                    Map.of("Content-Type", "application/json", "Accept", "application/json"),
+                    "{\"personal_token\":\"" + JsonSupport.escape(pat) + "\"}");
+            if (resp.status() == 401 || resp.status() == 403 || resp.status() == 400) {
+                return null;
+            }
+            if (resp.status() != 200) {
+                return null;
+            }
+            JsonNode root = resp.bodyAsJson();
+            return root == null ? null : JsonSupport.text(root, "token");
+        } catch (Exception e) {
+            return null;
         }
-        if (totalCredits == null) {
-            return BalanceSnapshot.of(pid, accountId, accountName, BalanceSnapshot.Status.ERROR)
-                    .message("无法识别响应格式: " + truncate(root.toString())).build();
-        }
-        Double totalCharged = JsonSupport.number(data, "totalCharged");
-        JsonNode plan = data.get("currentPlan");
-        String planName = plan != null ? JsonSupport.text(plan, "name") : null;
-
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
-        b.label("剩余 Credits").currency("Credits").amount(totalCredits);
-        StringBuilder detail = new StringBuilder(String.format("%.2f Credits", totalCredits));
-        if (totalCharged != null && totalCharged > 0) {
-            detail.append(" · 已消耗 ").append(String.format("%.2f", totalCharged));
-        }
-        if (planName != null && !planName.isBlank()) {
-            detail.append(" · 套餐 ").append(planName);
-            b.detail("当前套餐", planName);
-        }
-        Double creditLimit = JsonSupport.number(data, "creditLimit");
-        if (creditLimit == null) creditLimit = JsonSupport.number(data, "totalLimit");
-        Double percent = (creditLimit != null && creditLimit > 0)
-                ? totalCredits / creditLimit * 100.0 : null;
-        b.metric(ProviderCapability.QUOTA, "剩余 Credits", totalCredits, "Credits", percent,
-                "Qoder user/status");
-        return b.build();
     }
 
-    /** Teams 模式：解析成员配额响应。 */
-    static BalanceSnapshot parseTeamsUsage(ProviderId pid, String accountId, String accountName, JsonNode root) {
-        JsonNode data = root.has("data") ? root.get("data") : root;
-        Double remainingCredits = JsonSupport.number(data, "remainingCredits");
-        if (remainingCredits == null) remainingCredits = JsonSupport.number(data, "remaining");
-        if (remainingCredits == null) remainingCredits = JsonSupport.number(data, "credits");
-        Double totalCredits = JsonSupport.number(data, "totalCredits");
-        if (totalCredits == null) totalCredits = JsonSupport.number(data, "total");
+    private BalanceSnapshot buildSnapshot(AccountConfig config, JsonNode usage, JsonNode plan) {
+        // 组织模式（附加参数 org_id）优先展示 orgResourcePackage，否则展示个人 userQuota
+        Map<String, String> extras = config.parseExtraParams();
+        boolean orgMode = extras.get("org_id") != null && !extras.get("org_id").isBlank();
+        return parseUsage(pid, config.getId(), config.getName(), usage, plan, orgMode);
+    }
+
+    /** 解析额度响应（包内可见，供单元测试）。 */
+    static BalanceSnapshot parseUsage(ProviderId pid, String accountId, String accountName,
+                                      JsonNode usage, JsonNode plan, boolean orgMode) {
+        Quota user = parseQuota(usage, orgMode ? "orgResourcePackage" : "userQuota");
+        Quota addOn = parseQuota(usage, "addOnQuota");
 
         BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
-        if (remainingCredits != null) {
-            b.label("剩余 Credits").currency("Credits").amount(remainingCredits);
-            Double percent = (totalCredits != null && totalCredits > 0)
-                    ? remainingCredits / totalCredits * 100.0 : null;
-            b.metric(ProviderCapability.QUOTA, "剩余 Credits", remainingCredits, "Credits", percent,
-                    "Qoder Teams 成员配额");
+
+        if (user != null && user.remaining != null) {
+            String unit = user.unit == null ? "Credits" : capitalize(user.unit);
+            b.label("剩余 Credits").currency(unit).amount(user.remaining);
+            Double percent = (user.total != null && user.total > 0)
+                    ? user.remaining / user.total * 100.0 : null;
+            b.percent(percent);
+            b.metric(ProviderCapability.QUOTA, "剩余 Credits", user.remaining, unit, percent,
+                    orgMode ? "Qoder 组织资源包" : "Qoder 个人额度");
+            if (user.total != null) {
+                b.detail("总配额", String.format("%.2f %s", user.total, unit));
+            }
+            if (user.used != null) {
+                b.detail("已使用", String.format("%.2f %s", user.used, unit));
+            }
         } else {
-            b.label("已消耗 Credits").currency("Credits").amount(0.0);
+            b.label("剩余 Credits").currency("Credits").amount(null);
         }
-        if (totalCredits != null) {
-            b.detail("总配额", String.format("%.2f", totalCredits));
+
+        if (addOn != null && addOn.remaining != null && addOn.remaining > 0) {
+            String unit = addOn.unit == null ? "Credits" : capitalize(addOn.unit);
+            b.detail("赠额 Credits", String.format("%.2f %s", addOn.remaining, unit));
         }
+
+        Double expiresAt = JsonSupport.number(usage, "expiresAt");
+        if (expiresAt != null && expiresAt > 0) {
+            b.detail("额度到期", formatEpoch(expiresAt.longValue()));
+        }
+
+        // 套餐信息
+        if (plan != null && plan.isObject()) {
+            String planName = JsonSupport.text(plan, "planTierName");
+            if (planName == null) {
+                planName = JsonSupport.text(plan, "planTier");
+            }
+            if (planName != null && !planName.isBlank()) {
+                b.detail("当前套餐", planName);
+            }
+            String endDate = JsonSupport.text(plan, "endDate");
+            if (endDate == null) {
+                endDate = JsonSupport.text(plan, "end_date");
+            }
+            if (endDate != null && !endDate.isBlank()) {
+                b.detail("套餐到期", endDate);
+            }
+        }
+
         return b.build();
     }
 
-    private static String truncate(String body) {
-        if (body == null) return "";
-        return body.length() > 300 ? body.substring(0, 300) + "…(" + body.length() + "chars)" : body;
+    /** 解析 usage 响应中的一个额度对象。 */
+    private static Quota parseQuota(JsonNode usage, String field) {
+        JsonNode q = usage == null ? null : usage.get(field);
+        if (q == null || !q.isObject()) {
+            return null;
+        }
+        Double total = JsonSupport.number(q, "total");
+        if (total == null) {
+            total = JsonSupport.number(q, "cap");
+        }
+        Double used = JsonSupport.number(q, "used");
+        Double remaining = JsonSupport.number(q, "remaining");
+        if (remaining == null && total != null && used != null) {
+            remaining = Math.max(0, total - used);
+        }
+        return new Quota(total, used, remaining, JsonSupport.text(q, "unit"));
+    }
+
+    private static String formatEpoch(long millis) {
+        return java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                .withZone(java.time.ZoneId.systemDefault())
+                .format(java.time.Instant.ofEpochMilli(millis));
+    }
+
+    private static String capitalize(String s) {
+        if (s == null || s.isBlank()) {
+            return "Credits";
+        }
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
+    private String resolveBase(AccountConfig config) {
+        String base = normalize(config.getBaseUrl());
+        if (base != null) {
+            return base;
+        }
+        // 配置为空时按地区使用官方 OpenAPI 域名
+        return pid == ProviderId.QODER_INTL
+                ? "https://openapi.qoder.sh"
+                : "https://openapi.qoder.com.cn";
+    }
+
+    private static String normalize(String baseUrl) {
+        if (baseUrl == null) {
+            return null;
+        }
+        String s = baseUrl.strip();
+        if (s.isEmpty()) {
+            return null;
+        }
+        while (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+        return s;
+    }
+
+    /** 一个额度对象（total/used/remaining/unit）。 */
+    private static final class Quota {
+        final Double total;
+        final Double used;
+        final Double remaining;
+        final String unit;
+
+        Quota(Double total, Double used, Double remaining, String unit) {
+            this.total = total;
+            this.used = used;
+            this.remaining = remaining;
+            this.unit = unit;
+        }
     }
 }
