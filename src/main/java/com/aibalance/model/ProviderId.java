@@ -109,6 +109,18 @@ public enum ProviderId {
             "填阶跃星辰 API Key（platform.stepfun.com → API Keys 创建）。官方余额接口 GET /v1/accounts 返回可用余额、充值金额与赠送金额。",
             "按量付费 · 官方余额", "StepFun 账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
+    QODER_CN("Qoder（国内站）", "#3B82F6", "https://openapi.qoder.sh",
+            "账号授权方式：填 Qoder PAT（个人访问令牌，在 qoder.com.cn/account/integrations 创建）。"
+                    + "默认查询个人余额 GET /api/v3/user/status，返回剩余 Credits、已消耗与当前套餐。"
+                    + "如需查询组织用量：附加参数填 org_id=xxx; member_id=xxx，自动走 Teams API（api.qoder.com.cn）。",
+            "订阅套餐 · Credits 余额", "Qoder 国内站账户", Region.DOMESTIC,
+            BillingMode.SUBSCRIPTION),
+    QODER_INTL("Qoder（国际站）", "#3B82F6", "https://openapi.qoder.sh",
+            "账号授权方式：填 Qoder 国际站 PAT（qoder.com → Settings → Personal Access Tokens 创建，前缀 pt-）。"
+                    + "默认查询个人余额 GET /api/v3/user/status，返回剩余 Credits、已消耗与当前套餐。"
+                    + "如需查询组织用量：附加参数填 org_id=xxx; member_id=xxx，自动走 Teams API（api.qoder.com）。",
+            "订阅套餐 · Credits 余额（国际站）", "Qoder 国际站账户", Region.OVERSEAS,
+            BillingMode.SUBSCRIPTION),
     XIAOMI("小米 MiMo", "#FF6900", "https://api.xiaomimimo.com/v1",
             "官方未开放余额/额度查询接口，仅能校验 Key 有效，本入口暂不可用。",
             "双计费 · 均 Key 校验（无公开余额接口）", "小米 MiMo 账户", Region.DOMESTIC,
@@ -117,6 +129,14 @@ public enum ProviderId {
             "官方未开放余额/额度查询接口，仅能校验 Key 有效，本入口暂不可用。",
             "双计费 · 均 Key 校验（无公开余额接口）", "云知声 MaaS 账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO, BillingMode.SUBSCRIPTION),
+    LONGCAT("LongCat 长猫", "#FF6B35", "https://api.longcat.chat/openai/v1",
+            "官方未开放余额/额度查询接口，仅能校验 Key 有效。",
+            "按量付费 + Token Pack · 仅 Key 校验", "LongCat 开放平台", Region.DOMESTIC,
+            BillingMode.PAY_AS_YOU_GO, BillingMode.SUBSCRIPTION),
+    MODELSCOPE("魔塔社区 ModelScope", "#FF6A00", "https://api-inference.modelscope.cn/v1",
+            "官方未开放余额/额度查询接口，仅能校验 Key 有效。",
+            "免费额度 + 按量付费 · 仅 Key 校验", "魔塔社区", Region.DOMESTIC,
+            BillingMode.PAY_AS_YOU_GO),
 
     // ===== 海外厂商 =====
     OPENAI("OpenAI（API Key）", "#10A37F", "https://api.openai.com",
@@ -152,6 +172,22 @@ public enum ProviderId {
     OPENROUTER("OpenRouter 中转", "#6466E9", "https://openrouter.ai/api",
             "填 OpenRouter API Key（openrouter.ai → Keys 创建）。显示官方 Key 配额（limit/usage）与账户 Credits 余额。",
             "按量付费 · Key 配额 + Credits", "OpenRouter 账户", Region.GATEWAY,
+            BillingMode.PAY_AS_YOU_GO),
+    OPENCODE_GO("OpenCode Go 套餐", "#0EA5E9", "https://opencode.ai",
+            "填 OpenCode Go 套餐 API Key。官方接口查询用量百分比和重置时间。",
+            "套餐用量 · 剩余比例", "OpenCode Go", Region.GATEWAY,
+            BillingMode.SUBSCRIPTION),
+    COMMANDCODE("CommandCode", "#8B5CF6", "https://api.commandcode.ai",
+            "填 CommandCode API Key。官方接口查询信用额度和订阅信息。",
+            "信用额度 · 订阅状态", "CommandCode", Region.GATEWAY,
+            BillingMode.PAY_AS_YOU_GO),
+    TOAPIS("ToAPIs", "#10B981", "",
+            "填 ToAPIs API 令牌。Base URL 填你的中转站地址。",
+            "网关配额 · 剩余额度", "ToAPIs", Region.GATEWAY,
+            BillingMode.PAY_AS_YOU_GO),
+    ZENMUX("ZenMux", "#F59E0B", "",
+            "填 ZenMux API 令牌。Base URL 填你的中转站地址。",
+            "网关配额 · 剩余额度", "ZenMux", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO);
 
     /** 选型弹窗的分区：国内 / 海外 / 中转站。 */
@@ -346,6 +382,7 @@ public enum ProviderId {
             case KIMI_INTL -> ProviderCapability.set(ProviderCapability.BALANCE);
             case SILICONFLOW -> ProviderCapability.set(ProviderCapability.BALANCE);
             case STEPFUN -> ProviderCapability.set(ProviderCapability.BALANCE);
+            case QODER_CN, QODER_INTL -> ProviderCapability.set(ProviderCapability.QUOTA);
             case OPENAI -> ProviderCapability.set();
             case OPENAI_ADMIN -> ProviderCapability.set(
                     ProviderCapability.COST, ProviderCapability.USAGE);
@@ -371,7 +408,8 @@ public enum ProviderId {
             case KIMI_CODING -> ProviderCapability.set(ProviderCapability.QUOTA);
             case ONEAPI -> ProviderCapability.set(ProviderCapability.QUOTA);
             case OPENROUTER -> ProviderCapability.set(ProviderCapability.BALANCE, ProviderCapability.QUOTA);
-            case XIAOMI, UNISOUND -> ProviderCapability.set();
+            case OPENCODE_GO, COMMANDCODE, TOAPIS, ZENMUX -> ProviderCapability.set(ProviderCapability.QUOTA);
+            case XIAOMI, UNISOUND, LONGCAT, MODELSCOPE -> ProviderCapability.set();
         };
     }
 }

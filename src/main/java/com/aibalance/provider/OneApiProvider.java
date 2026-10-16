@@ -15,26 +15,32 @@ import java.util.Map;
  *  "requestCount": 120, "username": "..."}}
  * OneAPI 配额单位约定：1 美元 ≈ 500000 配额；仅作估算展示。
  */
-public final class OneApiProvider implements BalanceProvider {
+public class OneApiProvider implements BalanceProvider {
 
     /** OneAPI 标准换算：quota = 金额(USD) * 500000 */
     private static final double QUOTA_PER_USD = 500_000.0;
 
     private final HttpSupport http;
+    private final ProviderId pid;
 
     public OneApiProvider(HttpSupport http) {
+        this(http, ProviderId.ONEAPI);
+    }
+
+    public OneApiProvider(HttpSupport http, ProviderId pid) {
         this.http = http;
+        this.pid = pid;
     }
 
     @Override
     public BalanceSnapshot check(AccountConfig config) {
         String base = normalize(config.getBaseUrl());
         if (base == null) {
-            return BalanceSnapshot.of(ProviderId.ONEAPI, config.getId(), config.getName(),
+            return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                     BalanceSnapshot.Status.ERROR).message("需要配置网关 Base URL").build();
         }
         if (!config.hasValidKey()) {
-            return BalanceSnapshot.of(ProviderId.ONEAPI, config.getId(), config.getName(),
+            return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                     BalanceSnapshot.Status.NOT_CONFIGURED).message("尚未配置 API Key").build();
         }
         try {
@@ -42,27 +48,27 @@ public final class OneApiProvider implements BalanceProvider {
                     Map.of("Authorization", "Bearer " + config.getApiKey().strip(),
                             "Accept", "application/json"));
             if (resp.status() == 401 || resp.status() == 403) {
-                return BalanceSnapshot.of(ProviderId.ONEAPI, config.getId(), config.getName(),
+                return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.UNAUTHORIZED)
                         .message("Token 无效或无权限").build();
             }
             if (resp.status() != 200) {
-                return BalanceSnapshot.of(ProviderId.ONEAPI, config.getId(), config.getName(),
+                return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.ERROR)
                         .message("HTTP " + resp.status() + " " + DeepSeekProvider.firstError(resp.body())).build();
             }
             JsonNode root = resp.bodyAsJson();
             if (root == null) {
-                return BalanceSnapshot.of(ProviderId.ONEAPI, config.getId(), config.getName(),
+                return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.ERROR).message("响应格式异常").build();
             }
-            return fromJson(ProviderId.ONEAPI, config.getId(), config.getName(), root);
+            return fromJson(pid, config.getId(), config.getName(), root);
         } catch (HttpSupport.HttpFailure e) {
-            return BalanceSnapshot.of(ProviderId.ONEAPI, config.getId(), config.getName(),
+            return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                             e.isNetwork() ? BalanceSnapshot.Status.TIMEOUT : BalanceSnapshot.Status.ERROR)
                     .message(e.getMessage()).build();
         } catch (Exception e) {
-            return BalanceSnapshot.of(ProviderId.ONEAPI, config.getId(), config.getName(),
+            return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                             BalanceSnapshot.Status.ERROR)
                     .message("解析失败: " + e.getClass().getSimpleName()).build();
         }

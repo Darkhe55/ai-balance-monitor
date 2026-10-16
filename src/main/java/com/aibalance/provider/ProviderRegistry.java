@@ -44,8 +44,16 @@ public final class ProviderRegistry {
         providers.put(ProviderId.BAIDU, new BaiduProvider(http));
         providers.put(ProviderId.XAI, new XaiProvider(http));
         providers.put(ProviderId.STEPFUN, new StepFunProvider(http));
+        providers.put(ProviderId.QODER_CN, new QoderProvider(http, ProviderId.QODER_CN));
+        providers.put(ProviderId.QODER_INTL, new QoderProvider(http, ProviderId.QODER_INTL));
         providers.put(ProviderId.XIAOMI, new XiaomiProvider(http));
         providers.put(ProviderId.UNISOUND, new UnisoundProvider(http));
+        providers.put(ProviderId.LONGCAT, new LongCatProvider(http));
+        providers.put(ProviderId.MODELSCOPE, new ModelScopeProvider(http));
+        providers.put(ProviderId.OPENCODE_GO, new OpenCodeGoProvider(http, ProviderId.OPENCODE_GO));
+        providers.put(ProviderId.COMMANDCODE, new CommandCodeProvider(http, ProviderId.COMMANDCODE));
+        providers.put(ProviderId.TOAPIS, new OneApiProvider(http, ProviderId.TOAPIS));
+        providers.put(ProviderId.ZENMUX, new OneApiProvider(http, ProviderId.ZENMUX));
     }
 
     public BalanceProvider forId(ProviderId id) {
