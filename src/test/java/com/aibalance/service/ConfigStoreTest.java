@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConfigStoreTest {
@@ -93,12 +94,89 @@ class ConfigStoreTest {
     }
 
     @Test
-    void recoversFromCorruptedFile() throws Exception {
+    void corruptedFileIsPreservedAndBlocksWrites() throws Exception {
         Path f = tempDir.resolve("config.json");
-        Files.writeString(f, "{broken json!!");
+        String broken = "{broken json!!";
+        Files.writeString(f, broken);
         ConfigStore store = new ConfigStore(f);
+
         ConfigStore.AppConfig cfg = store.load();
+
+        // 读到默认空配置，但必须进入只读保护状态
         assertTrue(cfg.getAccounts().isEmpty());
-        assertTrue(Files.exists(tempDir.resolve("config.corrupted.bak")));
+        assertTrue(store.unreadable());
+
+        // 关键：原文件既没被移动也没被改写——这正是曾经丢账户的那一步
+        assertTrue(Files.exists(f), "损坏的配置文件必须留在原地，不能被移走");
+        assertEquals(broken, Files.readString(f));
+
+        // 且已留一份带时间戳的备份供取证
+        try (var files = Files.list(tempDir)) {
+            assertTrue(files.anyMatch(p -> p.getFileName().toString().startsWith("config.corrupted-")
+                    && p.getFileName().toString().endsWith(".bak")));
+        }
+
+        // 只读保护期间写回必须失败，且不能碰到原文件
+        ConfigStore.AppConfig empty = new ConfigStore.AppConfig();
+        assertThrows(IllegalStateException.class, () -> store.save(empty));
+        assertEquals(broken, Files.readString(f));
+    }
+
+    @Test
+    void secondCorruptionDoesNotOverwritePreviousBackup() throws Exception {
+        Path f = tempDir.resolve("config.json");
+        Files.writeString(f, "{first broken!!");
+        new ConfigStore(f).load();
+        String firstBackup = singleBackupName();
+
+        // 第二次故障（修复前再次失败）不得毁掉上一次的备份
+        Files.writeString(f, "{second broken!!");
+        new ConfigStore(f).load();
+
+        try (var files = Files.list(tempDir)) {
+            long backups = files.filter(p -> p.getFileName().toString().startsWith("config.corrupted-")
+                    && p.getFileName().toString().endsWith(".bak")).count();
+            assertEquals(2, backups, "两次故障应留下两份独立备份");
+        }
+        assertTrue(Files.exists(tempDir.resolve(firstBackup)), "第一次的备份必须仍然存在");
+        assertEquals("{second broken!!", Files.readString(f));
+    }
+
+    private String singleBackupName() throws Exception {
+        try (var files = Files.list(tempDir)) {
+            return files.filter(p -> p.getFileName().toString().startsWith("config.corrupted-"))
+                    .map(p -> p.getFileName().toString())
+                    .findFirst()
+                    .orElseThrow();
+        }
+    }
+
+    @Test
+    void displayEntriesSurviveSaveRoundTrip() {
+        Path f = tempDir.resolve("config.json");
+        ConfigStore store = new ConfigStore(f);
+
+        AccountConfig acc = new AccountConfig(ProviderId.DEEPSEEK, "主账户", "sk-test", null);
+        acc.setDisplayEntries(java.util.List.of("QUOTA|模型 gpt-4o 配额", "BALANCE|账户余额"));
+        ConfigStore.AppConfig cfg = new ConfigStore.AppConfig();
+        cfg.getAccounts().add(acc);
+        store.save(cfg);
+
+        // 曾经每次保存都会漏拷 displayEntries，用户在「展示条目」里的选择被静默清空
+        AccountConfig back = store.load().getAccounts().get(0);
+        assertEquals(java.util.List.of("QUOTA|模型 gpt-4o 配额", "BALANCE|账户余额"),
+                back.getDisplayEntries());
+    }
+
+    @Test
+    void saveLeavesNoTempFileBehind() throws Exception {
+        Path f = tempDir.resolve("config.json");
+        ConfigStore store = new ConfigStore(f);
+        store.save(new ConfigStore.AppConfig());
+
+        try (var files = Files.list(tempDir)) {
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().startsWith("config.json.tmp")),
+                    "原子写入的临时文件不应残留");
+        }
     }
 }

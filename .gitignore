@@ -29,6 +29,14 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
+# 图标设计产物（AI 生成位图与打包用 ico）：本地保留，不入库。
+# 运行时窗口图标位图按同一约定不入库，缺失时 SvgIcon.windowIcon() 自动回退单色表盘。
+docs/icons/
+src/main/resources/com/aibalance/ui/app-icon.png
+
+# 本机备注信息
+打包备注.txt
+
 # 工具运行时目录（如会话任务记录），不属于项目源码
 .reasonix/
 

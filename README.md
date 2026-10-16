@@ -2,6 +2,7 @@
 
 一个基于 **Java 17 + JavaFX** 的桌面工具：接入市面上主流 AI 服务的 API，**实时查看账户余额与用量配额**。
 
+![应用图标](docs/icons/app-256.png)
 
 ![暗色空状态](docs/empty-state-dark.png)
 
@@ -19,14 +20,15 @@
 - **Token 计划（套餐）额度**：智谱 GLM Coding Plan、MiniMax Token Plan、Kimi Coding 套餐的 5 小时/周窗口额度；阿里云百炼 Token Plan 的 Credits 剩余额度；OpenRouter Key 配额（limit/usage）与账户 Credits；OpenAI Admin Key 的组织级费用与用量；Claude 响应头速率配额
 - **计费形式明确标注**：添加账户时表单自动显示该服务的计费形式标签（按量付费余额 / 按量付费配额 / 订阅套餐额度 / 云账户余额+账单 / 网关额度等），名称输入框示例随所选服务切换，避免误写成其他厂商名称
 - **Base URL 全服务可配**：所有服务均显示 Base URL 输入框并**预填官方默认地址**（如 DeepSeek `https://api.deepseek.com`、阿里云百炼中国站 `https://business.aliyuncs.com`），可手动修改为自定义 / 代理地址（网关类无官方通用域名，需自行填写，已明确标注必填）
-- **明暗双主题**：右上角一键切换深色/浅色，选择持久化到本地配置，重启后保持
+- **明暗双主题**：右上角一键切换深色/浅色，选择持久化到本地配置，重启后保持；**Windows 系统标题栏同步跟随主题**（经 DWM `DWMWA_USE_IMMERSIVE_DARK_MODE` 属性设置，否则深色界面会配一条系统默认标题栏）
 - **添加账户表单带滚动条**：内容超高时在框内滚动，小屏/高 DPI 下信息不超出屏幕，对话框可缩放
 - **卡片菜单**：每张卡片右上角「⋯」提供立即刷新 / 编辑 / 启用停用 / 删除，弹层在双主题下均可正常显示
 - **强制 HTTPS**：所有请求仅允许 `https://` 地址，明文 `http://` 一律拒绝，避免 API Key 在链路上被窃听；强制 HTTP/1.1 并显式启用 TLSv1.2/1.3，规避代理/中间设备的握手兼容问题
 - **网络模式可切换**：顶部「跟随系统 / 直连」开关（自动读取系统代理，企业代理 / Clash 等场景无需手动配置；出现 TLS 握手失败时可切「直连」排查）
 - **API Key 加密存储**：Windows 下使用 **DPAPI（CryptProtectData）** 加密后落盘（密文带 `dpapi:` 前缀），配置文件不再含明文 Key；旧版明文配置首次保存时自动迁移
 - **空状态动效**：无账户时同心圆插图呈**呼吸缩放 + 核心脉冲 + 4 秒涟漪**循环动画；空状态出现/消失、卡片状态更新、主题切换均带缓和过渡动画
-- **本地配置**：账户、刷新间隔与主题保存在本机 `~/.ai-balance-monitor/config.json`，原子写入防损坏
+- **本地配置**：账户、刷新间隔与主题保存在本机 `~/.ai-balance-monitor/config.json`，原子写入防损坏。**读取失败时绝不覆盖原文件**：只另存一份 `config.corrupted-<时间戳>.bak` 供取证（原文件留在原地），并进入只读保护——启动时弹窗提示，本次运行不写回任何配置，避免「一次解析失败 → 空配置被反复保存 → 账户与密钥全丢」；修复或移走该文件后重启即恢复
+- **账户展示条目持久化**：卡片「展示条目」里勾选的条目随配置一起保存，不会被其他设置变更清空
 - **可扩展**：新增服务只需实现 `BalanceProvider` 接口并在 `ProviderRegistry` 注册一行
 
 ## 支持的 AI 服务与数据口径
@@ -111,15 +113,25 @@ gradlew.bat test       :: 仅执行单元测试
 gradlew.bat buildDist
 ```
 
-产出 `dist/ai-balance-monitor/`：内嵌 **jlink 精简 JRE**（含 JavaFX 原生库与 Conscrypt），**不依赖系统是否安装 JDK/JRE**，
+产出 **`build\dist\ai-balance-monitor\`**（注意是 `build\` 下，不是项目根的 `dist\`）：内嵌 **jlink 精简 JRE**（含 JavaFX 原生库与 Conscrypt），**不依赖系统是否安装 JDK/JRE**，
 整个文件夹可复制到任意 Windows 10/11 64 位机器运行（会显示一个控制台窗口）：
 
 ```
-dist\ai-balance-monitor\ai-balance-monitor.bat
+build\dist\ai-balance-monitor\ai-balance-monitor.bat
 ```
 
 如需**无控制台窗口的单文件 exe**（`AI余额监控.exe`，即 Release 附件的形态），在 `buildDist` 产出目录之上用 JDK 自带的
-`jpackage` 指向 `dist\ai-balance-monitor` 打包即可（`app-image` + `--app-version`）；该 exe 同样是构建产物，不提交到本仓库。
+`jpackage` 指向 `build\dist\ai-balance-monitor` 打包即可（`app-image` + `--app-version`）；该 exe 同样是构建产物，不提交到本仓库。
+
+```bat
+jpackage --type app-image --app-version 0.1.1 ^
+  --runtime-image build\dist\ai-balance-monitor\runtime ^
+  --input build\dist\ai-balance-monitor\app ^
+  --main-jar ai-balance-monitor.jar ^
+  --main-class com.aibalance.ui.AppLauncher ^
+  --dest build\dist\ai-balance-monitor-image ^
+  --name "AI余额监控"
+```
 
 ## 使用说明
 
