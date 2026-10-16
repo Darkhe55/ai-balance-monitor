@@ -41,6 +41,8 @@ public final class BalanceMonitor {
     private volatile long refreshIntervalSeconds = 60;
     private volatile boolean refreshing;
     private java.util.concurrent.ScheduledFuture<?> scheduledTask;
+    /** 自动刷新完成后的 UI 回调（在工作线程触发，UI 需自行转回 FX 线程）。 */
+    private volatile Runnable refreshCompleteListener;
 
     public BalanceMonitor(ProviderRegistry registry) {
         this.registry = registry;
@@ -69,6 +71,11 @@ public final class BalanceMonitor {
 
     public long refreshIntervalSeconds() {
         return refreshIntervalSeconds;
+    }
+
+    /** 设置自动刷新完成后的 UI 回调。 */
+    public void setRefreshCompleteListener(Runnable listener) {
+        this.refreshCompleteListener = listener;
     }
 
     /** 快照视图（不可变副本，UI 可安全遍历） */
@@ -112,6 +119,9 @@ public final class BalanceMonitor {
                     if (pending.decrementAndGet() == 0) {
                         lastRefreshAt.set(System.currentTimeMillis());
                         refreshing = false;
+                        if (refreshCompleteListener != null) {
+                            refreshCompleteListener.run();
+                        }
                         onDone.run();
                     }
                 }

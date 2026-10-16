@@ -521,7 +521,7 @@ public final class MainView extends BorderPane {
         refreshProgress.setManaged(false);
     }
 
-    private void updateCards() {
+    public void updateCards() {
         Map<String, BalanceSnapshot> snaps = monitor.snapshotView();
         List<AccountConfig> accs = monitorAccounts();
 
@@ -592,7 +592,7 @@ public final class MainView extends BorderPane {
         }
     }
 
-    private void refreshStatusBar() {
+    public void refreshStatusBar() {
         Map<String, BalanceSnapshot> snaps = monitor.snapshotView();
         long ok = snaps.values().stream()
                 .filter(s -> s.status() == BalanceSnapshot.Status.OK).count();
@@ -727,6 +727,11 @@ public final class MainView extends BorderPane {
         }
         if (ballView != null) {
             ballView.setLightTheme(lightTheme);
+        }
+        // 系统标题栏由 DWM 绘制、不随 stylesheet 变化，必须单独通知系统，
+        // 否则深色界面会配一条白色标题栏。
+        if (scene != null && scene.getWindow() instanceof javafx.stage.Stage st) {
+            WinTitleBar.applyDarkMode(st.getTitle(), !lightTheme);
         }
         ConfigStore.AppConfig cfg = configStore.load();
         cfg.setTheme(lightTheme ? "light" : "dark");

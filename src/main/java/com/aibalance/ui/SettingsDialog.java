@@ -191,6 +191,27 @@ final class SettingsDialog {
         f.extraParams.setVisible(false);
         f.extraParams.setManaged(false);
 
+        // Qoder 专用：org_id 和 member_id 独立输入框
+        Label lOrgId = new Label("组织 ID");
+        lOrgId.getStyleClass().add("form-label");
+        f.orgIdField.setMaxWidth(Double.MAX_VALUE);
+        f.orgIdField.setPromptText("org_xxx");
+        grid.add(lOrgId, 0, row);
+        grid.add(f.orgIdField, 1, row++);
+        f.orgIdLabel = lOrgId;
+        f.orgIdField.setVisible(false);
+        f.orgIdField.setManaged(false);
+
+        Label lMemberId = new Label("成员 ID");
+        lMemberId.getStyleClass().add("form-label");
+        f.memberIdField.setMaxWidth(Double.MAX_VALUE);
+        f.memberIdField.setPromptText("member_xxx");
+        grid.add(lMemberId, 0, row);
+        grid.add(f.memberIdField, 1, row++);
+        f.memberIdLabel = lMemberId;
+        f.memberIdField.setVisible(false);
+        f.memberIdField.setManaged(false);
+
         Label lBilling = new Label("计费形式");        lBilling.getStyleClass().add("form-label");
         f.billingModeBox = new ComboBox<>();
         f.billingModeBox.setMaxWidth(Double.MAX_VALUE);
@@ -271,7 +292,11 @@ final class SettingsDialog {
         final TextField stf = new TextField();
         final TextField baseUrl = new TextField();
         final TextField extraParams = new TextField();
+        final TextField orgIdField = new TextField();
+        final TextField memberIdField = new TextField();
         Label extraLabel;
+        Label orgIdLabel;
+        Label memberIdLabel;
         final CheckBox enabled = new CheckBox();
         Label hint;
         Label billingValue;
@@ -302,6 +327,14 @@ final class SettingsDialog {
                 stf.setText(secret == null ? "" : secret);
                 baseUrl.setText(editTarget.getBaseUrl() == null ? "" : editTarget.getBaseUrl());
                 extraParams.setText(editTarget.getExtraParams() == null ? "" : editTarget.getExtraParams());
+                // Qoder：从 extraParams 解析 org_id / member_id 填到专用框
+                String extra = editTarget.getExtraParams();
+                if (extra != null && !extra.isBlank()) {
+                    editTarget.setExtraParams(extra);
+                    java.util.Map<String, String> map = editTarget.parseExtraParams();
+                    orgIdField.setText(map.getOrDefault("org_id", ""));
+                    memberIdField.setText(map.getOrDefault("member_id", ""));
+                }
                 enabled.setSelected(editTarget.isEnabled());
                 // 编辑时沿用已保存的计费形态；缺失时按厂商默认
                 String saved = editTarget.getBillingMode();
@@ -379,12 +412,30 @@ final class SettingsDialog {
                 spf.setPromptText(sp == null ? "" : sp);
                 stf.setPromptText(sp == null ? "" : sp);
             }
+            boolean isQoder = pid == ProviderId.QODER_CN || pid == ProviderId.QODER_INTL;
             boolean needExtra = pid == ProviderId.XAI;
             if (extraLabel != null && extraParams != null) {
                 extraLabel.setVisible(needExtra);
                 extraLabel.setManaged(needExtra);
                 extraParams.setVisible(needExtra);
                 extraParams.setManaged(needExtra);
+                if (needExtra) {
+                    extraParams.setPromptText("team_id=xxx");
+                }
+            }
+            // Qoder 专用：显示 org_id 和 member_id 独立输入框
+            boolean showQoderFields = isQoder;
+            if (orgIdLabel != null && orgIdField != null) {
+                orgIdLabel.setVisible(showQoderFields);
+                orgIdLabel.setManaged(showQoderFields);
+                orgIdField.setVisible(showQoderFields);
+                orgIdField.setManaged(showQoderFields);
+            }
+            if (memberIdLabel != null && memberIdField != null) {
+                memberIdLabel.setVisible(showQoderFields);
+                memberIdLabel.setManaged(showQoderFields);
+                memberIdField.setVisible(showQoderFields);
+                memberIdField.setManaged(showQoderFields);
             }
             if (billingValue != null) {
                 syncBillingControl();
@@ -533,9 +584,25 @@ final class SettingsDialog {
             cfg.setBaseUrl(baseUrl.getText() == null ? "" : baseUrl.getText().strip());
             cfg.setBillingMode(billingModeValue == null ? null : billingModeValue.name());
             cfg.setEnabled(enabled.isSelected());
-            cfg.setExtraParams(pid == ProviderId.XAI
-                    ? (extraParams.getText() == null ? "" : extraParams.getText().strip()) : null);
+            cfg.setExtraParams((pid == ProviderId.XAI)
+                    ? (extraParams.getText() == null ? "" : extraParams.getText().strip())
+                    : (pid == ProviderId.QODER_CN || pid == ProviderId.QODER_INTL)
+                        ? buildQoderExtraParams()
+                        : null);
             return cfg;
+        }
+
+        /** Qoder 专用：把 org_id 和 member_id 拼成 extraParams 格式。 */
+        private String buildQoderExtraParams() {
+            StringBuilder sb = new StringBuilder();
+            String org = orgIdField.getText() == null ? "" : orgIdField.getText().strip();
+            String member = memberIdField.getText() == null ? "" : memberIdField.getText().strip();
+            if (!org.isBlank()) sb.append("org_id=").append(org);
+            if (!member.isBlank()) {
+                if (sb.length() > 0) sb.append("; ");
+                sb.append("member_id=").append(member);
+            }
+            return sb.toString();
         }
 
         /** 需要双凭证（云签名接口）的厂商。 */

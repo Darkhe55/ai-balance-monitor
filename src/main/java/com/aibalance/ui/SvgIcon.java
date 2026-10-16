@@ -10,6 +10,8 @@ import javafx.scene.shape.SVGPath;
 import javafx.scene.transform.Scale;
 
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * SVG 图标渲染工具：把 SVGPath 路径按 24×24 视图盒渲染为 JavaFX Image，
@@ -18,6 +20,9 @@ import java.awt.image.BufferedImage;
  * <p>图标语义：表盘式「监控仪表」——外圆环 + 内指针，表达"余额/用量实时监测"。
  */
 final class SvgIcon {
+
+    /** 窗口图标位图：暗色圆角底 + 蓝色钱包与用量柱（与 exe 图标同一套设计）。 */
+    private static final String WINDOW_ICON_RESOURCE = "/com/aibalance/ui/app-icon.png";
 
     private SvgIcon() {
     }
@@ -53,6 +58,26 @@ final class SvgIcon {
         WritableImage img = new WritableImage((int) Math.ceil(size), (int) Math.ceil(size));
         g.snapshot(params, img);
         return img;
+    }
+
+    /**
+     * 窗口图标：优先用位图 {@code app-icon.png}（与 exe 图标同一套设计）。
+     *
+     * <p>位图资源缺失或解码失败时回退到单色表盘，保证源码可独立编译运行。
+     * 托盘图标不走这里——托盘只有 16–32 px，位图在该尺寸下不可读，仍用矢量表盘。
+     */
+    static Image windowIcon() {
+        try (InputStream in = SvgIcon.class.getResourceAsStream(WINDOW_ICON_RESOURCE)) {
+            if (in != null) {
+                Image img = new Image(in);
+                if (!img.isError() && img.getWidth() > 0 && img.getHeight() > 0) {
+                    return img;
+                }
+            }
+        } catch (IOException | RuntimeException e) {
+            System.err.println("WINDOW_ICON_FALLBACK: " + e);
+        }
+        return render(32, Color.web("#E07BA8"));
     }
 
     /** JavaFX Image → AWT BufferedImage（托盘图标需要）。 */

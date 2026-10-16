@@ -13,6 +13,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
@@ -40,6 +41,7 @@ public final class App extends Application {
 
     private BalanceMonitor monitor;
     private ConfigStore configStore;
+    private MainView mainView;
 
     @Override
     public void start(Stage stage) {
@@ -146,6 +148,7 @@ public final class App extends Application {
 
         ConfigStore configStore = new ConfigStore();
         ConfigStore.AppConfig cfg = configStore.load();
+        final boolean configUnreadable = configStore.unreadable();
 
         // 百炼旧入口迁移：
         // 1) 已移除 / 已合并的入口（模型限流配额 BAILIAN、官方账单 BAILIAN_BILLING、
@@ -230,6 +233,7 @@ public final class App extends Application {
         }
 
         MainView mainView = new MainView(configStore, monitor, http, light);
+        this.mainView = mainView;
         if (snapshotSeed > 0) {
             // 快照验证：把种子账户同步给 MainView 数据源（内存态）
             List<AccountConfig> seeds = monitorAccounts.subList(
@@ -255,10 +259,17 @@ public final class App extends Application {
         mainView.setBallView(ballView);
         ballView.setAutoCollapseEnabled(cfg.isAutoCollapseBall());
 
+        // 自动刷新完成后：同时更新主界面卡片和悬浮球面板
+        monitor.setRefreshCompleteListener(() -> javafx.application.Platform.runLater(() -> {
+            mainView.updateCards();
+            mainView.refreshStatusBar();
+            ballView.refreshPanelIfOpen();
+        }));
+
         stage.setTitle("AI 余额监控");
         stage.setMinWidth(880);
         stage.setMinHeight(600);
-        stage.getIcons().add(SvgIcon.render(32, javafx.scene.paint.Color.web("#E07BA8")));
+        stage.getIcons().add(SvgIcon.windowIcon());
         stage.setScene(scene);
         final boolean snapshotMode = snapshot != null || snapshotDialog != null
                 || snapshotMenu != null || snapshotBall != null || snapshotPrefs != null
@@ -282,6 +293,10 @@ public final class App extends Application {
             }
         });
         stage.show();
+        applyTitleBarTheme(stage, light);
+        if (configUnreadable && !snapshotMode) {
+            warnConfigUnreadable(configStore.configFile());
+        }
 
         if (enterBall) {
             // 白边实测钩子：启动 3 秒后自动进入悬浮球模式（给主窗口完整渲染时间，避免 owned 窗口
@@ -649,6 +664,32 @@ public final class App extends Application {
         }
     }
 
+    /**
+     * 把系统标题栏切成深/浅色。标题栏由 DWM 绘制、换 stylesheet 影响不到，
+     * 需单独通知系统；刚 show 时 HWND 可能尚未就绪，故首帧后再补一次。
+     */
+    private static void applyTitleBarTheme(Stage stage, boolean light) {
+        WinTitleBar.applyDarkMode(stage.getTitle(), !light);
+        Platform.runLater(() -> WinTitleBar.applyDarkMode(stage.getTitle(), !light));
+    }
+
+    /**
+     * 配置解析失败时必须让用户看见。
+     *
+     * <p>此时应用处于只读保护状态（原文件不会被写回）。不提示的话，用户看到的只是
+     * "账户全没了"，却不知道数据还在、也不能安全地新建——这正是本提示要消除的歧义。
+     */
+    private static void warnConfigUnreadable(java.nio.file.Path file) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("配置无法读取");
+        alert.setHeaderText("已停止写入配置，原文件未被修改");
+        alert.setContentText("配置文件无法解析：\n" + file
+                + "\n\n为避免账户与 API Key 被空配置覆盖，本次运行不会保存任何配置。"
+                + "\n原文件已原样保留，同目录下的 config.corrupted-<时间戳>.bak 是同一份内容的备份。"
+                + "\n\n请手动检查该文件（修复内容，或改名移走）后重启本程序。");
+        alert.showAndWait();
+    }
+
     /** 安装系统托盘（悬浮球模式下常驻后台挂起；托盘不可用时静默跳过）。 */
     private void installTray(TrayManager tray, Stage stage, FloatingBallView ballView) {
         if (tray.isInstalled()) {
@@ -664,13 +705,15 @@ public final class App extends Application {
     }
 
     /** 托盘「显示完整界面」：悬浮球可见则收起恢复主窗口，否则直接显示/置前。 */
-    private static void showMainFromBall(Stage stage, FloatingBallView ballView) {
+    private void showMainFromBall(Stage stage, FloatingBallView ballView) {
         if (ballView.isShowing()) {
             ballView.restoreMain();
         } else {
             stage.show();
             stage.toFront();
         }
+        // 切回主界面时触发一次刷新，确保数据最新
+        mainView.refreshNow();
     }
 
     /** 托盘「关闭软件」：清理悬浮球/托盘/监控线程后退出。 */

@@ -456,6 +456,13 @@ public final class FloatingBallView {
         panelTime.setText("更新于 " + TIME_FMT.format(Instant.now()));
     }
 
+    /** 如果面板处于展开状态，立即刷新一次数据（供外部自动刷新回调调用）。 */
+    public void refreshPanelIfOpen() {
+        if (panelMode && stage.isShowing()) {
+            rebuildRows();
+        }
+    }
+
     /** 收起为悬浮球：回到展开前球的位置（贴边则贴回边缘，未贴边保持原位）。 */
     private void collapseToBall() {
         panelMode = false;

@@ -35,7 +35,8 @@ final class ProviderPickerDialog {
     /** 暂时不提供新增的厂商入口：官网未公开余额接口或接口不能长期使用。 */
     private static final Set<ProviderId> TEMP_UNSUPPORTED_PICK = Set.of(
             ProviderId.GLM, ProviderId.GEMINI, ProviderId.GEMINI_BILLING,
-            ProviderId.XIAOMI, ProviderId.UNISOUND, ProviderId.SILICONFLOW);
+            ProviderId.XIAOMI, ProviderId.UNISOUND, ProviderId.SILICONFLOW,
+            ProviderId.KIMI_CODING, ProviderId.LONGCAT, ProviderId.MODELSCOPE);
 
     /** 置灰入口的悬浮提示文案（按厂商给出准确原因，不编造）。 */
     private static final String UNSUPPORTED_HINT = "当前厂商不可用，计划在未来加入支持";
@@ -204,6 +205,16 @@ final class ProviderPickerDialog {
     static final class LogoCache {
         private static final Map<ProviderId, Image> CACHE = new EnumMap<>(ProviderId.class);
 
+        /** 同厂商不同入口复用同一 logo（国际站/Admin/账单等变体不单独出图）。 */
+        private static final Map<ProviderId, String> LOGO_ALIAS = Map.of(
+                ProviderId.KIMI_INTL, "moonshot",
+                ProviderId.OPENAI_ADMIN, "openai",
+                ProviderId.GEMINI_BILLING, "gemini",
+                ProviderId.BAILIAN_TOKENPLAN, "bailian",
+                ProviderId.BAILIAN_ACCOUNT, "bailian",
+                ProviderId.BAILIAN_ACCOUNT_INTL, "bailian",
+                ProviderId.MINIMAX_INTL, "minimax");
+
         private LogoCache() {
         }
 
@@ -213,7 +224,8 @@ final class ProviderPickerDialog {
                 return img;
             }
             try {
-                String path = "/com/aibalance/ui/logos/" + pid.name().toLowerCase() + ".png";
+                String logoName = LOGO_ALIAS.getOrDefault(pid, pid.name().toLowerCase());
+                String path = "/com/aibalance/ui/logos/" + logoName + ".png";
                 var stream = SettingsDialog.class.getResourceAsStream(path);
                 if (stream != null) {
                     try (stream) {
