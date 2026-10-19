@@ -131,7 +131,7 @@ build\dist\ai-balance-monitor\ai-balance-monitor.bat
 `jpackage` 指向 `build\dist\ai-balance-monitor` 打包即可（`app-image` + `--app-version`）；该 exe 同样是构建产物，不提交到本仓库。
 
 ```bat
-jpackage --type app-image --app-version 0.2.0 ^
+jpackage --type app-image --app-version 0.2.1 ^
   --runtime-image build\dist\ai-balance-monitor\runtime ^
   --input build\dist\ai-balance-monitor\app ^
   --main-jar ai-balance-monitor.jar ^
