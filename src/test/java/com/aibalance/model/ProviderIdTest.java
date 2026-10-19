@@ -135,4 +135,13 @@ class ProviderIdTest {
         assertTrue(ProviderId.COMMANDCODE.getDescription().contains("API 密钥"));
         assertTrue(ProviderId.COMMANDCODE.getKeyPrompt().contains("commandcode.ai"));
     }
+
+    @Test
+    void modelScopeExplainsMagicubeBalance() {
+        // ModelScope：说明魔粒余额接口与访问令牌获取位置
+        assertTrue(ProviderId.MODELSCOPE.getDescription().contains("魔粒"));
+        assertTrue(ProviderId.MODELSCOPE.getDescription().contains("访问令牌"));
+        assertTrue(ProviderId.MODELSCOPE.getKeyPrompt().contains("ms-"));
+        assertTrue(ProviderId.MODELSCOPE.getKeyPrompt().contains("访问令牌"));
+    }
 }

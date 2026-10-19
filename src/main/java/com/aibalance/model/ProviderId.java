@@ -134,8 +134,8 @@ public enum ProviderId {
             "按量付费 + Token Pack · 仅 Key 校验", "LongCat 开放平台", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO, BillingMode.SUBSCRIPTION),
     MODELSCOPE("魔塔社区 ModelScope", "#FF6A00", "https://api-inference.modelscope.cn/v1",
-            "官方未开放余额/额度查询接口，仅能校验 Key 有效。",
-            "免费额度 + 按量付费 · 仅 Key 校验", "魔塔社区", Region.DOMESTIC,
+            "填 ModelScope 平台访问令牌（modelscope.cn 控制台 → 访问令牌 生成，形如 ms-…）。工具调用官方「魔粒」余额接口 GET /openapi/v1/magicubes/balance 实时显示魔粒余额（总/可用/冻结）；若提示需完善个人信息，请到平台完成实名认证后再查询。",
+            "免费额度 + 按量付费 · 魔粒余额", "魔塔社区", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO),
 
     // ===== 海外厂商 =====
@@ -321,6 +321,8 @@ public enum ProviderId {
                     "（ZenMux 控制台 → 平台/管理 创建 Management API Key，不是 PAYG Key 或订阅 Key）";
             case COMMANDCODE ->
                     "（commandcode.ai 控制台创建 API 密钥）";
+            case MODELSCOPE ->
+                    "ms-…（modelscope.cn 控制台 → 访问令牌 生成）";
             default -> "sk-…（仅保存在本机）";
         };
     }
@@ -413,7 +415,8 @@ public enum ProviderId {
             case ONEAPI -> ProviderCapability.set(ProviderCapability.QUOTA);
             case OPENROUTER -> ProviderCapability.set(ProviderCapability.BALANCE, ProviderCapability.QUOTA);
             case OPENCODE_GO, COMMANDCODE, TOAPIS, ZENMUX -> ProviderCapability.set(ProviderCapability.QUOTA);
-            case XIAOMI, UNISOUND, LONGCAT, MODELSCOPE -> ProviderCapability.set();
+            case XIAOMI, UNISOUND, LONGCAT -> ProviderCapability.set();
+            case MODELSCOPE -> ProviderCapability.set(ProviderCapability.BALANCE);
         };
     }
 }

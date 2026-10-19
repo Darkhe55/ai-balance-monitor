@@ -36,7 +36,7 @@ final class ProviderPickerDialog {
     private static final Set<ProviderId> TEMP_UNSUPPORTED_PICK = Set.of(
             ProviderId.GLM, ProviderId.GEMINI, ProviderId.GEMINI_BILLING,
             ProviderId.XIAOMI, ProviderId.UNISOUND, ProviderId.SILICONFLOW,
-            ProviderId.KIMI_CODING, ProviderId.LONGCAT, ProviderId.MODELSCOPE);
+            ProviderId.KIMI_CODING, ProviderId.LONGCAT);
 
     /** 置灰入口的悬浮提示文案（按厂商给出准确原因，不编造）。 */
     private static final String UNSUPPORTED_HINT = "当前厂商不可用，计划在未来加入支持";

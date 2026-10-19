@@ -11,7 +11,7 @@
 ## 功能特性
 
 - **一键接入主流 AI 服务（共 25 个入口）**：
-  - **国内**：DeepSeek、Kimi 月之暗面（中国区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站）、Kimi Coding 套餐、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单（中国站）、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound、Qoder（国内站）
+  - **国内**：DeepSeek、Kimi 月之暗面（中国区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站）、Kimi Coding 套餐、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单（中国站）、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound、魔塔社区 ModelScope（魔粒余额）、Qoder（国内站）
   - **海外**：Kimi（国际区）、MiniMax 海螺（国际站）、OpenAI（API Key / Admin Key）、Anthropic Claude、Google Gemini（API Key / Cloud 账单）、xAI Grok、阿里云百炼·账户余额与账单（国际站）、Qoder（国际站）
   - **中转站**：OneAPI / NewAPI 网关、OpenRouter、CommandCode、OpenCode Go、ToAPIs、ZenMux
 - **服务选型弹窗（图标网格）**：添加/编辑账户时点击「服务」打开弹窗，各厂商以**官方 logo 图标卡片**网格展示，按 **国内厂商 / 海外厂商 / 中转站** 分区布局，中转站（OneAPI、OpenRouter）置于最下方；logo 资源离线打包，深色/浅色主题均正常显示，无 logo 的服务自动回退品牌色徽标
@@ -53,6 +53,7 @@
 | Qoder（国内站） | 官方 OpenAPI：PAT 兑换 Job Token 后 `GET /api/v2/quota/usage`（qoder.com.cn → 个人访问令牌） | 剩余 Credits、总配额、已用、赠额、当前套餐与到期时间（组织 Key 可展示组织资源包） |
 | 小米 MiMo | **双计费**（按量 Key 前缀 `sk-`；Token Plan 专属 Key + 专用地址 `https://token-plan-cn.xiaomimimo.com/v1`）均无公开余额/额度接口：`GET /v1/models` 校验 Key + 响应头速率配额（尽力） | Key 状态、计费形态标注、令牌/请求配额剩余（网关返回时展示）；额度数值需到控制台查看 |
 | 云知声 Unisound | **双计费**（按量 Key 前缀 `sk-`；Token Plan 专属 Key 前缀 `tp-`）均无公开余额/额度接口：同小米做法 | Key 状态、计费形态标注、令牌/请求配额剩余（网关返回时展示）；额度数值需到控制台查看 |
+| 魔塔社区 ModelScope | 官方「魔粒」余额接口 `GET https://www.modelscope.cn/openapi/v1/magicubes/balance`（Bearer 访问令牌，控制台「访问令牌」生成，形如 `ms-…`；注意余额端点在 `/openapi/v1/` 前缀，不在 `api-inference` 模型网关下） | 魔粒余额（总/可用/冻结）；`success:false` 或未实名时如实提示需完善个人信息 |
 
 ### 海外厂商
 
