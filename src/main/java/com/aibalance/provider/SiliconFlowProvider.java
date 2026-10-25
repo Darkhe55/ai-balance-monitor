@@ -84,19 +84,19 @@ public final class SiliconFlowProvider implements BalanceProvider {
         Double totalBalance = JsonSupport.number(root, "total_balance");
         String status = JsonSupport.text(root, "status");
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName)
                 .label("账户余额")
                 .currency("CNY")
                 .amount(balance);
         if (balance == null) {
-            b.message("未返回余额字段");
+            builder.message("未返回余额字段");
         }
         if (totalBalance != null) {
-            b.detail("总额度", String.format("%.2f CNY", totalBalance));
+            builder.detail("总额度", String.format("%.2f CNY", totalBalance));
         }
         if (status != null && !status.isBlank()) {
-            b.detail("账户状态", status);
+            builder.detail("账户状态", status);
         }
-        return b.build();
+        return builder.build();
     }
 }

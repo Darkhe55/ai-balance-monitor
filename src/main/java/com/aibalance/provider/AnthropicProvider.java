@@ -74,21 +74,21 @@ public final class AnthropicProvider implements BalanceProvider {
         Long requestsRemaining = longHeader(resp, "anthropic-ratelimit-requests-remaining");
         Long requestsLimit = longHeader(resp, "anthropic-ratelimit-requests-limit");
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
         if (tokensRemaining != null && tokensLimit != null) {
-            b.label("令牌配额剩余").currency("tokens").amount(tokensRemaining.doubleValue());
-            b.percent(tokensLimit > 0 ? 100.0 * tokensRemaining / tokensLimit : null);
-            b.detail("配额上限", String.format("%,d tokens", tokensLimit));
+            builder.label("令牌配额剩余").currency("tokens").amount(tokensRemaining.doubleValue());
+            builder.percent(tokensLimit > 0 ? 100.0 * tokensRemaining / tokensLimit : null);
+            builder.detail("配额上限", String.format("%,d tokens", tokensLimit));
         } else {
-            b.label("账户状态");
-            b.message("该 Key 未返回配额信息（配额以控制台为准）");
+            builder.label("账户状态");
+            builder.message("该 Key 未返回配额信息（配额以控制台为准）");
         }
         if (requestsRemaining != null) {
-            b.detail("请求配额剩余", requestsLimit != null
+            builder.detail("请求配额剩余", requestsLimit != null
                     ? String.format("%,d / %,d 次", requestsRemaining, requestsLimit)
                     : String.format("%,d 次", requestsRemaining));
         }
-        return b.build();
+        return builder.build();
     }
 
     static Long longHeader(HttpSupport.Response resp, String name) {

@@ -238,15 +238,15 @@ public final class AccountCard extends VBox {
             details = details.subList(0, 5);
         }
         for (BalanceSnapshot.DetailLine line : details) {
-            Label k = new Label(line.label());
-            k.getStyleClass().add("detail-label");
-            Label v = new Label(line.value());
-            v.getStyleClass().add("detail-value");
-            v.setMaxWidth(200);
-            v.setWrapText(true);
-            Region sp = new Region();
-            HBox.setHgrow(sp, Priority.ALWAYS);
-            HBox row = new HBox(8, k, sp, v);
+            Label label = new Label(line.label());
+            label.getStyleClass().add("detail-label");
+            Label value = new Label(line.value());
+            value.getStyleClass().add("detail-value");
+            value.setMaxWidth(200);
+            value.setWrapText(true);
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+            HBox row = new HBox(8, label, spacer, value);
             row.setAlignment(Pos.CENTER_LEFT);
             detailsBox.getChildren().add(row);
         }

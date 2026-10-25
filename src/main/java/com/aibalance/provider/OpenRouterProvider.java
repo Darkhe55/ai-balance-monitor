@@ -57,7 +57,7 @@ public final class OpenRouterProvider implements BalanceProvider {
                 return BalanceSnapshot.of(ProviderId.OPENROUTER, config.getId(), config.getName(),
                         BalanceSnapshot.Status.ERROR).message("响应格式异常").build();
             }
-            BalanceSnapshot.Builder b = fromKeyJson(config.getId(), config.getName(), keyRoot);
+            BalanceSnapshot.Builder builder = fromKeyJson(config.getId(), config.getName(), keyRoot);
 
             // 尽力读取账户 Credits 余额；失败仅补充说明，不影响 Key 配额主状态
             try {
@@ -65,15 +65,15 @@ public final class OpenRouterProvider implements BalanceProvider {
                 if (credResp.status() == 200) {
                     JsonNode credRoot = credResp.bodyAsJson();
                     if (credRoot != null) {
-                        creditsInto(b, credRoot);
+                        creditsInto(builder, credRoot);
                     }
                 } else {
-                    b.detail("账户余额", "接口返回 HTTP " + credResp.status());
+                    builder.detail("账户余额", "接口返回 HTTP " + credResp.status());
                 }
             } catch (Exception ignored) {
-                b.detail("账户余额", "查询失败");
+                builder.detail("账户余额", "查询失败");
             }
-            return b.build();
+            return builder.build();
         } catch (HttpSupport.HttpFailure e) {
             return BalanceSnapshot.of(ProviderId.OPENROUTER, config.getId(), config.getName(),
                             e.isNetwork() ? BalanceSnapshot.Status.TIMEOUT : BalanceSnapshot.Status.ERROR)
@@ -92,7 +92,7 @@ public final class OpenRouterProvider implements BalanceProvider {
             return BalanceSnapshot.of(ProviderId.OPENROUTER, accountId, accountName,
                     BalanceSnapshot.Status.ERROR).message("响应缺少 data 字段（非 OpenRouter 网关？）");
         }
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(ProviderId.OPENROUTER, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(ProviderId.OPENROUTER, accountId, accountName)
                 .label("Key 额度上限").currency("USD");
         Double limit = JsonSupport.number(data, "limit");
         Double usage = JsonSupport.number(data, "usage");
@@ -100,51 +100,51 @@ public final class OpenRouterProvider implements BalanceProvider {
         String label = JsonSupport.text(data, "label");
 
         if (limit != null && usage != null) {
-            b.amount(limit - usage);
-            b.percent(limit > 0 ? 100.0 * (limit - usage) / limit : null);
-            b.message(limited ? "已达限额（is_limited）" : "限额内");
+            builder.amount(limit - usage);
+            builder.percent(limit > 0 ? 100.0 * (limit - usage) / limit : null);
+            builder.message(limited ? "已达限额（is_limited）" : "限额内");
         } else if (limit != null) {
-            b.amount(limit).message("未返回用量字段");
+            builder.amount(limit).message("未返回用量字段");
         } else {
-            b.label("Key 状态").message("未返回 limit/usage");
+            builder.label("Key 状态").message("未返回 limit/usage");
         }
         if (label != null && !label.isBlank()) {
-            b.detail("Key 名称", label);
+            builder.detail("Key 名称", label);
         }
         if (limit != null) {
-            b.detail("额度上限", String.format("$ %.2f", limit));
+            builder.detail("额度上限", String.format("$ %.2f", limit));
         }
         if (usage != null) {
-            b.detail("已用额度", String.format("$ %.2f", usage));
+            builder.detail("已用额度", String.format("$ %.2f", usage));
         }
         JsonNode rl = data.get("rate_limit");
         if (rl != null && rl.isObject()) {
             Double requests = JsonSupport.number(rl, "requests");
             String interval = JsonSupport.text(rl, "interval");
             if (requests != null) {
-                b.detail("速率限制", interval == null
+                builder.detail("速率限制", interval == null
                         ? String.format("%,.0f 次", requests)
                         : String.format("%,.0f 次 / %s", requests, interval));
             }
         }
-        return b;
+        return builder;
     }
 
     /** 将 /api/v1/credits 响应合并进快照（尽力而为，可独立测试）。 */
-    static void creditsInto(BalanceSnapshot.Builder b, JsonNode root) {
+    static void creditsInto(BalanceSnapshot.Builder builder, JsonNode root) {
         JsonNode credits = root == null ? null : root.get("credits");
         if (credits == null || !credits.isObject()) {
-            b.detail("账户余额", "响应缺少 credits 字段");
+            builder.detail("账户余额", "响应缺少 credits 字段");
             return;
         }
         Double total = JsonSupport.number(credits, "total_credits");
         Double used = JsonSupport.number(credits, "total_usage");
         if (total != null && used != null) {
-            b.detail("账户余额", String.format("$ %.2f（可用 $ %.2f）", total, Math.max(0, total - used)));
+            builder.detail("账户余额", String.format("$ %.2f（可用 $ %.2f）", total, Math.max(0, total - used)));
         } else if (total != null) {
-            b.detail("账户余额", String.format("$ %.2f", total));
+            builder.detail("账户余额", String.format("$ %.2f", total));
         } else {
-            b.detail("账户余额", "未返回 total_credits");
+            builder.detail("账户余额", "未返回 total_credits");
         }
     }
 

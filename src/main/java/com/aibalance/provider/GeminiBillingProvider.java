@@ -101,7 +101,7 @@ public final class GeminiBillingProvider implements BalanceProvider {
                     .label("预算数量").amount(0.0)
                     .message("该账单账号下未配置预算（Budgets）").build();
         }
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
         boolean anyCost = false;
         double totalBudget = 0;
         String currency = null;
@@ -132,22 +132,22 @@ public final class GeminiBillingProvider implements BalanceProvider {
             if (lastPeriod != null) {
                 line.append(String.format(" · 上期花费 %.2f", lastPeriod));
             }
-            b.detail(displayName, line.toString());
+            builder.detail(displayName, line.toString());
         }
         if (currency == null) {
             currency = "USD";
         }
         if (!anyCost) {
-            b.label("预算总数").currency(currency).amount(0.0)
+            builder.label("预算总数").currency(currency).amount(0.0)
                     .message("预算均未设置金额，请到 Google Cloud 控制台检查");
-            b.detail("说明", "当前期实际花费不随 Budgets API 返回，请在 Google Cloud 控制台查看");
-            return b.build();
+            builder.detail("说明", "当前期实际花费不随 Budgets API 返回，请在 Google Cloud 控制台查看");
+            return builder.build();
         }
-        b.label("预算总额").currency(currency).amount(totalBudget);
-        b.metric(ProviderCapability.COST, "预算总额", totalBudget, currency, null,
+        builder.label("预算总额").currency(currency).amount(totalBudget);
+        builder.metric(ProviderCapability.COST, "预算总额", totalBudget, currency, null,
                 "Google Cloud Budgets（specifiedAmount）合计");
-        b.detail("说明", "当前期实际花费不随 Budgets API 返回，请在 Google Cloud 控制台查看");
-        return b.build();
+        builder.detail("说明", "当前期实际花费不随 Budgets API 返回，请在 Google Cloud 控制台查看");
+        return builder.build();
     }
 
     /** money 字段：units(整数) + nanos(小数) 转 Double。 */

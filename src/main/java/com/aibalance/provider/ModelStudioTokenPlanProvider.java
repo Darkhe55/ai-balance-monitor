@@ -221,10 +221,10 @@ public final class ModelStudioTokenPlanProvider implements BalanceProvider {
             totalSurplus += e.surplus;
             totalValue += e.total;
         }
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName)
                 .label("Token Plan 剩余 Credits").currency("Credits").amount(totalSurplus);
         if (totalValue > 0) {
-            b.percent(totalSurplus / totalValue * 100.0);
+            builder.percent(totalSurplus / totalValue * 100.0);
         }
         int shown = 0;
         for (CreditsEntry e : entries) {
@@ -232,13 +232,13 @@ public final class ModelStudioTokenPlanProvider implements BalanceProvider {
                 break;
             }
             Double pct = e.total > 0 ? e.surplus / e.total * 100.0 : null;
-            b.metricWithDetails(ProviderCapability.QUOTA,
+            builder.metricWithDetails(ProviderCapability.QUOTA,
                     e.label, e.surplus, "Credits", pct,
                     "总额 " + trim(e.total) + " Credits",
                     e.details);
             shown++;
         }
-        return b.build();
+        return builder.build();
     }
 
     /** 从单个 OpenAPI 响应收集 CREDITS 权益。 */

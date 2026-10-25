@@ -93,31 +93,31 @@ public final class ToApisProvider implements BalanceProvider {
         boolean hasBalance = remainBalance != null && remainBalance >= 0;
         boolean hasCredits = remainCredits != null && remainCredits > 0;
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
 
         if (unlimited) {
-            b.label("剩余额度").currency("").amount(null).message("不限量套餐");
+            builder.label("剩余额度").currency("").amount(null).message("不限量套餐");
         } else if (hasBalance) {
-            b.label("剩余余额").currency("USD").amount(remainBalance);
+            builder.label("剩余余额").currency("USD").amount(remainBalance);
         } else {
-            b.label("剩余额度").currency("").amount(null);
+            builder.label("剩余额度").currency("").amount(null);
         }
 
         if (!unlimited && hasBalance) {
-            b.metric(ProviderCapability.QUOTA, "剩余余额", remainBalance, "USD", null,
+            builder.metric(ProviderCapability.QUOTA, "剩余余额", remainBalance, "USD", null,
                     "ToAPIs 令牌余额");
         }
         if (usedBalance != null) {
-            b.detail("已用余额", String.format("$%.2f", usedBalance));
+            builder.detail("已用余额", String.format("$%.2f", usedBalance));
         }
         if (!unlimited && hasCredits) {
-            b.detail("剩余 Credits", String.format("%.0f", remainCredits));
+            builder.detail("剩余 Credits", String.format("%.0f", remainCredits));
         }
         if (creditsPerUsd != null && creditsPerUsd > 0) {
-            b.detail("换算比例", String.format("1 USD = %.0f Credits", creditsPerUsd));
+            builder.detail("换算比例", String.format("1 USD = %.0f Credits", creditsPerUsd));
         }
 
-        return b.build();
+        return builder.build();
     }
 
     private static String normalize(String baseUrl) {

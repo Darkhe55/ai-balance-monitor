@@ -115,7 +115,7 @@ public final class ModelScopeProvider implements BalanceProvider {
         String code = JsonSupport.text(root, "code");
         String message = JsonSupport.text(root, "message");
         String suffix = (code == null || code.isBlank()) && (message == null || message.isBlank())
-                ? "" : "（" + nz(code) + " " + nz(message) + "）".trim();
+                ? "" : "（" + orEmpty(code) + " " + orEmpty(message) + "）".trim();
         try {
             HttpSupport.Response models = http.get(normalize(config.getBaseUrl()) + "/models",
                     Map.of("Authorization", "Bearer " + config.getApiKey().strip(),
@@ -145,7 +145,7 @@ public final class ModelScopeProvider implements BalanceProvider {
         return String.format("%.2f", v);
     }
 
-    private static String nz(String s) {
+    private static String orEmpty(String s) {
         return s == null || s.isBlank() ? "" : s;
     }
 

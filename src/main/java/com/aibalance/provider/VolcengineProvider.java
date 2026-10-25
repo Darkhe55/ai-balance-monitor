@@ -161,23 +161,23 @@ public final class VolcengineProvider implements BalanceProvider {
         if (currency == null || currency.isBlank()) {
             currency = "CNY";
         }
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
-        b.label("可用余额").currency(currency).amount(available);
-        b.metric(ProviderCapability.BALANCE, "可用余额", available, currency, null,
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
+        builder.label("可用余额").currency(currency).amount(available);
+        builder.metric(ProviderCapability.BALANCE, "可用余额", available, currency, null,
                 "火山引擎 QueryBalanceAcct");
         if (cash != null) {
-            b.detail("现金余额", String.format("%.2f %s", cash, currency));
+            builder.detail("现金余额", String.format("%.2f %s", cash, currency));
         }
         if (freeze != null) {
-            b.detail("冻结金额", String.format("%.2f %s", freeze, currency));
+            builder.detail("冻结金额", String.format("%.2f %s", freeze, currency));
         }
         if (arrears != null) {
-            b.detail("欠费金额", String.format("%.2f %s", arrears, currency));
+            builder.detail("欠费金额", String.format("%.2f %s", arrears, currency));
         }
         if (creditLimit != null) {
-            b.detail("信控额度", String.format("%.2f %s", creditLimit, currency));
+            builder.detail("信控额度", String.format("%.2f %s", creditLimit, currency));
         }
-        return b.build();
+        return builder.build();
     }
 
     private static String truncate(String body) {

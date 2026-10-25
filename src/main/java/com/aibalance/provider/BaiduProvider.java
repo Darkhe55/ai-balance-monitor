@@ -139,11 +139,11 @@ public final class BaiduProvider implements BalanceProvider {
             return BalanceSnapshot.of(pid, accountId, accountName, BalanceSnapshot.Status.ERROR)
                     .message("响应缺少 cashBalance 字段").build();
         }
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
-        b.label("现金余额").currency("CNY").amount(cash);
-        b.metric(ProviderCapability.BALANCE, "现金余额", cash, "CNY", null,
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
+        builder.label("现金余额").currency("CNY").amount(cash);
+        builder.metric(ProviderCapability.BALANCE, "现金余额", cash, "CNY", null,
                 "百度智能云 cash/balance");
-        return b.build();
+        return builder.build();
     }
 
     private static String truncate(String body) {

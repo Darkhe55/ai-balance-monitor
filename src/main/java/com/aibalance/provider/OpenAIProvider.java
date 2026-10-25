@@ -105,20 +105,20 @@ public final class OpenAIProvider implements BalanceProvider {
             }
             JsonNode usageRoot = usageResp.status() == 200 ? usageResp.bodyAsJson() : null;
 
-            BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, config.getId(), config.getName());
-            mergeCosts(b, costRoot);
+            BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, config.getId(), config.getName());
+            mergeCosts(builder, costRoot);
             if (usageRoot != null) {
-                mergeUsage(b, usageRoot);
+                mergeUsage(builder, usageRoot);
             } else if (usageResp.status() != 200) {
-                b.detail("用量接口", "HTTP " + usageResp.status() + " " + DeepSeekProvider.firstError(usageResp.body()));
+                builder.detail("用量接口", "HTTP " + usageResp.status() + " " + DeepSeekProvider.firstError(usageResp.body()));
             }
-            if (b.metricOf(ProviderCapability.COST) == null && b.metricOf(ProviderCapability.USAGE) == null) {
+            if (builder.metricOf(ProviderCapability.COST) == null && builder.metricOf(ProviderCapability.USAGE) == null) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.ERROR).message("未解析到费用/用量数据").build();
             }
-            b.detail("计量口径", "官方组织 API：/v1/organization/costs + /v1/organization/usage/completions（近 30 天，按日）");
-            b.message("Admin Key 组织费用与用量（近 30 天）");
-            return b.build();
+            builder.detail("计量口径", "官方组织 API：/v1/organization/costs + /v1/organization/usage/completions（近 30 天，按日）");
+            builder.message("Admin Key 组织费用与用量（近 30 天）");
+            return builder.build();
         } catch (HttpSupport.HttpFailure e) {
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                             e.isNetwork() ? BalanceSnapshot.Status.TIMEOUT : BalanceSnapshot.Status.ERROR)
@@ -131,7 +131,7 @@ public final class OpenAIProvider implements BalanceProvider {
     }
 
     /** 合并 costs 响应为 COST 区块 + 明细（按 line_item / project 分解）。 */
-    static void mergeCosts(BalanceSnapshot.Builder b, JsonNode root) {
+    static void mergeCosts(BalanceSnapshot.Builder builder, JsonNode root) {
         double total = 0;
         java.util.Map<String, Double> byLine = new java.util.LinkedHashMap<>();
         java.util.Map<String, Double> byProject = new java.util.LinkedHashMap<>();
@@ -171,29 +171,29 @@ public final class OpenAIProvider implements BalanceProvider {
             currency = "USD";
         }
         if (total == 0 && byLine.isEmpty() && byProject.isEmpty()) {
-            b.metric(ProviderCapability.COST, "近 30 天费用", 0.0, currency, null,
+            builder.metric(ProviderCapability.COST, "近 30 天费用", 0.0, currency, null,
                     "官方组织 costs 接口返回空（本周期无消耗）");
             return;
         }
-        b.metric(ProviderCapability.COST, "近 30 天费用", total, currency, null, null);
+        builder.metric(ProviderCapability.COST, "近 30 天费用", total, currency, null, null);
         var topLines = byLine.entrySet().stream()
                 .sorted((x, y) -> Double.compare(y.getValue(), x.getValue()))
                 .limit(6).toList();
         for (var e : topLines) {
-            b.detail("费用项 " + e.getKey(), String.format("%.4f %s", e.getValue(), currency));
+            builder.detail("费用项 " + e.getKey(), String.format("%.4f %s", e.getValue(), currency));
         }
         if (byProject.size() > 1) {
             var topProjects = byProject.entrySet().stream()
                     .sorted((x, y) -> Double.compare(y.getValue(), x.getValue()))
                     .limit(4).toList();
             for (var e : topProjects) {
-                b.detail("项目 " + e.getKey(), String.format("%.4f %s", e.getValue(), currency));
+                builder.detail("项目 " + e.getKey(), String.format("%.4f %s", e.getValue(), currency));
             }
         }
     }
 
     /** 合并 usage/completions 响应为 USAGE 区块 + 模型明细。 */
-    static void mergeUsage(BalanceSnapshot.Builder b, JsonNode root) {
+    static void mergeUsage(BalanceSnapshot.Builder builder, JsonNode root) {
         long totalInput = 0;
         long totalOutput = 0;
         long totalCached = 0;
@@ -226,17 +226,17 @@ public final class OpenAIProvider implements BalanceProvider {
             }
         }
         if (totalInput + totalOutput + totalRequests == 0 && byModel.isEmpty()) {
-            b.metric(ProviderCapability.USAGE, "近 30 天用量", 0.0, "tokens", null,
+            builder.metric(ProviderCapability.USAGE, "近 30 天用量", 0.0, "tokens", null,
                     "官方 usage 接口返回空（本周期无调用）");
             return;
         }
-        b.metric(ProviderCapability.USAGE, "近 30 天 Tokens", (double) (totalInput + totalOutput), "tokens", null,
+        builder.metric(ProviderCapability.USAGE, "近 30 天 Tokens", (double) (totalInput + totalOutput), "tokens", null,
                 String.format("输入 %,d · 输出 %,d · 缓存输入 %,d · 请求 %,d 次",
                         totalInput, totalOutput, totalCached, totalRequests));
         byModel.entrySet().stream()
                 .sorted((x, y) -> Long.compare(y.getValue()[0] + y.getValue()[1], x.getValue()[0] + x.getValue()[1]))
                 .limit(6)
-                .forEach(e -> b.detail("模型 " + e.getKey(),
+                .forEach(e -> builder.detail("模型 " + e.getKey(),
                         String.format("输入 %,d · 输出 %,d · %,d 次请求", e.getValue()[0], e.getValue()[1], e.getValue()[2])));
     }
 
@@ -268,22 +268,22 @@ public final class OpenAIProvider implements BalanceProvider {
             Long requestsRemaining = longHeader(resp, "x-ratelimit-remaining-requests");
             Long requestsLimit = longHeader(resp, "x-ratelimit-limit-requests");
 
-            BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, config.getId(), config.getName());
+            BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, config.getId(), config.getName());
             if (tokensRemaining != null && tokensLimit != null) {
-                b.label("令牌配额剩余").currency("tokens").amount(tokensRemaining.doubleValue());
-                b.percent(tokensLimit > 0 ? 100.0 * tokensRemaining / tokensLimit : null);
-                b.detail("配额上限", String.format("%,d tokens / 分钟", tokensLimit));
+                builder.label("令牌配额剩余").currency("tokens").amount(tokensRemaining.doubleValue());
+                builder.percent(tokensLimit > 0 ? 100.0 * tokensRemaining / tokensLimit : null);
+                builder.detail("配额上限", String.format("%,d tokens / 分钟", tokensLimit));
             } else {
-                b.label("账户状态");
-                b.message("未返回速率配额信息");
+                builder.label("账户状态");
+                builder.message("未返回速率配额信息");
             }
             if (requestsRemaining != null) {
-                b.detail("请求配额剩余", requestsLimit != null
+                builder.detail("请求配额剩余", requestsLimit != null
                         ? String.format("%,d / %,d 次/分钟", requestsRemaining, requestsLimit)
                         : String.format("%,d 次/分钟", requestsRemaining));
             }
-            b.detail("入口说明", "该 Key 仅用于模型调用，无法查询费用/用量；请在选型弹窗选择「OpenAI（Admin Key）」入口");
-            return b.build();
+            builder.detail("入口说明", "该 Key 仅用于模型调用，无法查询费用/用量；请在选型弹窗选择「OpenAI（Admin Key）」入口");
+            return builder.build();
         } catch (HttpSupport.HttpFailure e) {
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                             e.isNetwork() ? BalanceSnapshot.Status.TIMEOUT : BalanceSnapshot.Status.ERROR)

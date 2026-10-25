@@ -185,20 +185,20 @@ public final class MiniMaxProvider implements BalanceProvider {
         Long requestsRemaining = OpenAIProvider.longHeader(resp, "x-ratelimit-remaining-requests");
         Long requestsLimit = OpenAIProvider.longHeader(resp, "x-ratelimit-limit-requests");
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, config.getId(), config.getName())
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, config.getId(), config.getName())
                 .label("按量 Key 有效");
         if (tokensRemaining != null && tokensLimit != null) {
-            b.currency("tokens").amount(tokensRemaining.doubleValue());
-            b.detail("配额上限", String.format("%,d tokens / 分钟", tokensLimit));
+            builder.currency("tokens").amount(tokensRemaining.doubleValue());
+            builder.detail("配额上限", String.format("%,d tokens / 分钟", tokensLimit));
         } else {
-            b.message("钱包余额无公开 API，请到 MiniMax 控制台「账户管理 > 余额」查看");
+            builder.message("钱包余额无公开 API，请到 MiniMax 控制台「账户管理 > 余额」查看");
         }
         if (requestsRemaining != null) {
-            b.detail("请求配额剩余", requestsLimit != null
+            builder.detail("请求配额剩余", requestsLimit != null
                     ? String.format("%,d / %,d 次/分钟", requestsRemaining, requestsLimit)
                     : String.format("%,d 次/分钟", requestsRemaining));
         }
-        return b.build();
+        return builder.build();
     }
 
     /** 读取 base_resp.status_code；无该字段时按 0（成功）处理。 */
@@ -298,36 +298,36 @@ public final class MiniMaxProvider implements BalanceProvider {
                     .message("未解析到套餐窗口（非 Token Plan 订阅 Key？）").build();
         }
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName)
                 .label("Token Plan 额度").currency("%");
         if (used5h != null) {
-            b.amount(100.0 - used5h);
-            b.percent(100.0 - used5h);
-            b.message(String.format("5 小时窗口剩余 %.0f%%", 100.0 - used5h));
-            b.detail("5 小时窗口", String.format("已用 %.0f%% · 剩余 %.0f%%", used5h, 100.0 - used5h));
+            builder.amount(100.0 - used5h);
+            builder.percent(100.0 - used5h);
+            builder.message(String.format("5 小时窗口剩余 %.0f%%", 100.0 - used5h));
+            builder.detail("5 小时窗口", String.format("已用 %.0f%% · 剩余 %.0f%%", used5h, 100.0 - used5h));
             if (endTime != null && !endTime.isBlank()) {
-                b.detail("5 小时重置", formatReset(endTime));
+                builder.detail("5 小时重置", formatReset(endTime));
             }
         }
         if (weeklyUsed != null) {
-            b.detail("周窗口", String.format("已用 %.0f%% · 剩余 %.0f%%", weeklyUsed, 100.0 - weeklyUsed));
+            builder.detail("周窗口", String.format("已用 %.0f%% · 剩余 %.0f%%", weeklyUsed, 100.0 - weeklyUsed));
             if (weeklyEnd != null && !weeklyEnd.isBlank()) {
-                b.detail("周窗口重置", formatReset(weeklyEnd));
+                builder.detail("周窗口重置", formatReset(weeklyEnd));
             }
         }
         // 各模型额度明细（model_remains[] 元素）
         if (!models.isEmpty()) {
             for (ModelRemain m : models) {
                 if (m.intervalPercent != null || m.weeklyPercent != null) {
-                    b.detail("模型 " + m.modelName,
+                    builder.detail("模型 " + m.modelName,
                             String.format("5h 剩余 %.0f%% · 周剩余 %.0f%%",
                                     m.intervalPercent == null ? -1 : m.intervalPercent,
                                     m.weeklyPercent == null ? -1 : m.weeklyPercent));
                 }
             }
         }
-        b.detail("计量口径", "Token Plan 订阅额度（现金余额需控制台查看）");
-        return b.build();
+        builder.detail("计量口径", "Token Plan 订阅额度（现金余额需控制台查看）");
+        return builder.build();
     }
 
     /** model_remains[] 数组元素（实测真实结构）。 */

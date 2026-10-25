@@ -86,7 +86,7 @@ public final class OpenCodeGoProvider implements BalanceProvider {
 
     /** 解析套餐用量响应（包内可见，供单元测试）。 */
     static BalanceSnapshot parseUsage(ProviderId pid, String accountId, String accountName, JsonNode usage) {
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
 
         // 依次读取官方窗口：5 小时滚动 / 每周 / 每月
         Window rolling = parseWindow(usage, "rolling");
@@ -100,17 +100,17 @@ public final class OpenCodeGoProvider implements BalanceProvider {
         }
 
         // 主展示：以最近窗口的剩余比例作为套餐剩余
-        b.label("套餐剩余").currency("%").amount(primary.remainingPercent());
-        b.percent(primary.remainingPercent());
-        b.metric(ProviderCapability.QUOTA, "套餐剩余", primary.remainingPercent(), "%",
+        builder.label("套餐剩余").currency("%").amount(primary.remainingPercent());
+        builder.percent(primary.remainingPercent());
+        builder.metric(ProviderCapability.QUOTA, "套餐剩余", primary.remainingPercent(), "%",
                 primary.remainingPercent(), "OpenCode Go " + primary.displayName);
 
         // 各窗口明细：label 含「窗口」、值含「剩余 X%」，供主卡片与悬浮球面板统一提取
-        addWindowDetail(b, rolling, "5小时窗口");
-        addWindowDetail(b, weekly, "每周窗口");
-        addWindowDetail(b, monthly, "每月窗口");
+        addWindowDetail(builder, rolling, "5小时窗口");
+        addWindowDetail(builder, weekly, "每周窗口");
+        addWindowDetail(builder, monthly, "每月窗口");
 
-        return b.build();
+        return builder.build();
     }
 
     /** 解析单个窗口：percent 为已用百分比（0-100），剩余 = 100 - percent。 */
@@ -134,13 +134,13 @@ public final class OpenCodeGoProvider implements BalanceProvider {
                 resetsAt == null ? null : resetsAt);
     }
 
-    private static void addWindowDetail(BalanceSnapshot.Builder b, Window w, String label) {
+    private static void addWindowDetail(BalanceSnapshot.Builder builder, Window w, String label) {
         if (w == null) {
             return;
         }
-        b.detail(label, String.format("剩余 %.1f%%", w.remainingPercent()));
+        builder.detail(label, String.format("剩余 %.1f%%", w.remainingPercent()));
         if (w.resetsAt != null && !w.resetsAt.isBlank()) {
-            b.detail(label + "重置", w.resetsAt);
+            builder.detail(label + "重置", w.resetsAt);
         }
     }
 

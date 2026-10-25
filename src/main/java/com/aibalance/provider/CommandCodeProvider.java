@@ -117,16 +117,16 @@ public final class CommandCodeProvider implements BalanceProvider {
         JsonNode creditsData = credits != null && credits.has("credits") && credits.get("credits").isObject()
                 ? credits.get("credits") : null;
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
 
         // 主展示：月度剩余 Credits（美元）
         Double monthlyCredits = creditsData == null ? null : JsonSupport.number(creditsData, "monthlyCredits");
         if (monthlyCredits != null) {
-            b.label("月度剩余 Credits").currency("USD").amount(monthlyCredits);
-            b.metric(ProviderCapability.QUOTA, "月度剩余 Credits", monthlyCredits, "USD", null,
+            builder.label("月度剩余 Credits").currency("USD").amount(monthlyCredits);
+            builder.metric(ProviderCapability.QUOTA, "月度剩余 Credits", monthlyCredits, "USD", null,
                     "CommandCode 信用额度");
         } else {
-            b.label("信用额度").currency("USD").amount(null);
+            builder.label("信用额度").currency("USD").amount(null);
         }
 
         // 信用构成
@@ -135,21 +135,21 @@ public final class CommandCodeProvider implements BalanceProvider {
             Double free = JsonSupport.number(creditsData, "freeCredits");
             String planId = JsonSupport.text(creditsData, "planId");
             if (purchased != null) {
-                b.detail("已购 Credits", String.format("$%.2f", purchased));
+                builder.detail("已购 Credits", String.format("$%.2f", purchased));
             }
             if (free != null) {
-                b.detail("赠送 Credits", String.format("$%.2f", free));
+                builder.detail("赠送 Credits", String.format("$%.2f", free));
             }
             if (planId != null && !planId.isBlank()) {
-                b.detail("套餐", planId);
+                builder.detail("套餐", planId);
             }
         }
 
         // 用量窗口（5 小时 / 每周）
         JsonNode windowLimits = credits == null ? null : credits.get("windowLimits");
         if (windowLimits != null && windowLimits.isObject()) {
-            addWindow(b, windowLimits, "fiveHour", "5小时窗口");
-            addWindow(b, windowLimits, "weekly", "每周窗口");
+            addWindow(builder, windowLimits, "fiveHour", "5小时窗口");
+            addWindow(builder, windowLimits, "weekly", "每周窗口");
         }
 
         // 订阅信息
@@ -158,10 +158,10 @@ public final class CommandCodeProvider implements BalanceProvider {
             String periodEnd = JsonSupport.text(subData, "currentPeriodEnd");
             String planId = JsonSupport.text(subData, "planId");
             if (planId != null && !planId.isBlank()) {
-                b.detail("订阅套餐", planId);
+                builder.detail("订阅套餐", planId);
             }
             if (periodEnd != null && !periodEnd.isBlank()) {
-                b.detail("周期结束", periodEnd);
+                builder.detail("周期结束", periodEnd);
             }
         }
 
@@ -170,18 +170,18 @@ public final class CommandCodeProvider implements BalanceProvider {
             Double totalCost = JsonSupport.number(summary, "totalCost");
             Double totalCount = JsonSupport.number(summary, "totalCount");
             if (totalCost != null) {
-                b.detail("本期已用金额", String.format("$%.2f", totalCost));
+                builder.detail("本期已用金额", String.format("$%.2f", totalCost));
             }
             if (totalCount != null) {
-                b.detail("本期调用次数", String.format("%.0f 次", totalCount));
+                builder.detail("本期调用次数", String.format("%.0f 次", totalCount));
             }
         }
 
-        return b.build();
+        return builder.build();
     }
 
     /** 解析单个用量窗口：cap/used/resetAt → 「剩余 X%」+ 重置时间。 */
-    private static void addWindow(BalanceSnapshot.Builder b, JsonNode windowLimits, String key, String label) {
+    private static void addWindow(BalanceSnapshot.Builder builder, JsonNode windowLimits, String key, String label) {
         JsonNode w = windowLimits.get(key);
         if (w == null || !w.isObject()) {
             return;
@@ -192,13 +192,13 @@ public final class CommandCodeProvider implements BalanceProvider {
             return;
         }
         double remainingPercent = Math.max(0, Math.min(100, (cap - used) / cap * 100.0));
-        b.detail(label, String.format("剩余 %.1f%%", remainingPercent));
+        builder.detail(label, String.format("剩余 %.1f%%", remainingPercent));
         String resetAt = JsonSupport.text(w, "resetAt");
         // 部分订阅未开始窗口时 resetAt 可能为 0/空，此时不展示重置时间
         if (resetAt != null && !resetAt.isBlank() && !"0".equals(resetAt.trim())) {
-            b.detail(label + "重置", resetAt);
+            builder.detail(label + "重置", resetAt);
         }
-        b.metric(ProviderCapability.QUOTA, label + "额度", remainingPercent, "%", remainingPercent,
+        builder.metric(ProviderCapability.QUOTA, label + "额度", remainingPercent, "%", remainingPercent,
                 "CommandCode 用量窗口");
     }
 

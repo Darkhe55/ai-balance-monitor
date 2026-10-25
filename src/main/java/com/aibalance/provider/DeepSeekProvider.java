@@ -81,21 +81,21 @@ public final class DeepSeekProvider implements BalanceProvider {
             }
         }
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName)
                 .label("账户余额")
                 .currency(currency)
                 .amount(total);
         if (total == null) {
-            b.message("未返回余额信息");
+            builder.message("未返回余额信息");
         }
         if (granted != null) {
-            b.detail("赠送余额", fmt(granted, currency));
+            builder.detail("赠送余额", fmt(granted, currency));
         }
         if (toppedUp != null) {
-            b.detail("充值余额", fmt(toppedUp, currency));
+            builder.detail("充值余额", fmt(toppedUp, currency));
         }
-        b.detail("可用状态", available ? "可用" : "不可用（余额不足）");
-        return b.build();
+        builder.detail("可用状态", available ? "可用" : "不可用（余额不足）");
+        return builder.build();
     }
 
     private static String fmt(double v, String currency) {

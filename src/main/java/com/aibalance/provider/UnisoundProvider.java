@@ -84,29 +84,29 @@ public final class UnisoundProvider implements BalanceProvider {
         Long requestsRemaining = OpenAIProvider.longHeader(resp, "x-ratelimit-remaining-requests");
         Long requestsLimit = OpenAIProvider.longHeader(resp, "x-ratelimit-limit-requests");
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, id, name);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, id, name);
         if (tokensRemaining != null && tokensLimit != null) {
-            b.label("令牌配额剩余").currency("tokens").amount(tokensRemaining.doubleValue());
-            b.detail("配额上限", String.format("%,d tokens / 分钟", tokensLimit));
+            builder.label("令牌配额剩余").currency("tokens").amount(tokensRemaining.doubleValue());
+            builder.detail("配额上限", String.format("%,d tokens / 分钟", tokensLimit));
         } else {
-            b.label("账户状态");
+            builder.label("账户状态");
             if (mode == BillingMode.SUBSCRIPTION) {
-                b.message("Token Plan 套餐 Key 有效；额度无公开查询接口，请到控制台「订阅管理 / Token Plan」查看");
+                builder.message("Token Plan 套餐 Key 有效；额度无公开查询接口，请到控制台「订阅管理 / Token Plan」查看");
             } else {
-                b.message("按量付费 Key 有效；官方未开放余额接口，余额请到控制台查看");
+                builder.message("按量付费 Key 有效；官方未开放余额接口，余额请到控制台查看");
             }
         }
         if (mode == BillingMode.SUBSCRIPTION) {
-            b.detail("计费形态", "Token Plan 订阅套餐（Key 前缀 tp-，与按量 Key 相互独立）");
+            builder.detail("计费形态", "Token Plan 订阅套餐（Key 前缀 tp-，与按量 Key 相互独立）");
         } else {
-            b.detail("计费形态", "按量付费（Key 前缀 sk-）");
+            builder.detail("计费形态", "按量付费（Key 前缀 sk-）");
         }
         if (requestsRemaining != null) {
-            b.detail("请求配额剩余", requestsLimit != null
+            builder.detail("请求配额剩余", requestsLimit != null
                     ? String.format("%,d / %,d 次/分钟", requestsRemaining, requestsLimit)
                     : String.format("%,d 次/分钟", requestsRemaining));
         }
-        return b.build();
+        return builder.build();
     }
 }
 

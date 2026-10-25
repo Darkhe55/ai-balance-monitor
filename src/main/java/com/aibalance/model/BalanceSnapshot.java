@@ -129,22 +129,22 @@ public final class BalanceSnapshot {
         }
     }
 
-    private BalanceSnapshot(Builder b) {
-        this.providerId = b.providerId;
-        this.accountId = b.accountId;
-        this.accountName = b.accountName;
-        this.status = b.status;
-        this.primaryAmount = b.primaryAmount;
-        this.primaryCurrency = b.primaryCurrency;
-        this.primaryLabel = b.primaryLabel;
-        this.percent = b.percent;
-        this.details = List.copyOf(b.details);
-        this.message = b.message;
-        this.fetchedAt = b.fetchedAt != null ? b.fetchedAt : Instant.now();
-        this.capabilities = b.capabilities == null
+    private BalanceSnapshot(Builder builder) {
+        this.providerId = builder.providerId;
+        this.accountId = builder.accountId;
+        this.accountName = builder.accountName;
+        this.status = builder.status;
+        this.primaryAmount = builder.primaryAmount;
+        this.primaryCurrency = builder.primaryCurrency;
+        this.primaryLabel = builder.primaryLabel;
+        this.percent = builder.percent;
+        this.details = List.copyOf(builder.details);
+        this.message = builder.message;
+        this.fetchedAt = builder.fetchedAt != null ? builder.fetchedAt : Instant.now();
+        this.capabilities = builder.capabilities == null
                 ? java.util.EnumSet.noneOf(ProviderCapability.class)
-                : java.util.EnumSet.copyOf(b.capabilities);
-        this.metrics = List.copyOf(b.metrics);
+                : java.util.EnumSet.copyOf(builder.capabilities);
+        this.metrics = List.copyOf(builder.metrics);
     }
 
     public static Builder ok(ProviderId providerId, String accountId, String accountName) {

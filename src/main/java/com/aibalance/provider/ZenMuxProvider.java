@@ -96,7 +96,7 @@ public final class ZenMuxProvider implements BalanceProvider {
     /** 解析订阅 + PAYG 响应（包内可见，供单元测试）。 */
     static BalanceSnapshot parseData(ProviderId pid, String accountId, String accountName,
                                      JsonNode subscription, JsonNode payg) {
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
 
         JsonNode subData = subscription != null && subscription.has("data") && subscription.get("data").isObject()
                 ? subscription.get("data") : null;
@@ -106,19 +106,19 @@ public final class ZenMuxProvider implements BalanceProvider {
         // PAYG 余额作为主展示（入口按量付费语义）
         Double totalCredits = paygData == null ? null : JsonSupport.number(paygData, "total_credits");
         if (totalCredits != null) {
-            b.label("PAYG 余额").currency("USD").amount(totalCredits);
-            b.metric(ProviderCapability.QUOTA, "PAYG 余额", totalCredits, "USD", null,
+            builder.label("PAYG 余额").currency("USD").amount(totalCredits);
+            builder.metric(ProviderCapability.QUOTA, "PAYG 余额", totalCredits, "USD", null,
                     "ZenMux 预存 Credits");
             Double topUp = JsonSupport.number(paygData, "top_up_credits");
             Double bonus = JsonSupport.number(paygData, "bonus_credits");
             if (topUp != null) {
-                b.detail("充值 Credits", String.format("$%.2f", topUp));
+                builder.detail("充值 Credits", String.format("$%.2f", topUp));
             }
             if (bonus != null) {
-                b.detail("赠送 Credits", String.format("$%.2f", bonus));
+                builder.detail("赠送 Credits", String.format("$%.2f", bonus));
             }
         } else {
-            b.label("订阅额度").currency("").amount(null);
+            builder.label("订阅额度").currency("").amount(null);
         }
 
         // 订阅信息与额度窗口
@@ -128,26 +128,26 @@ public final class ZenMuxProvider implements BalanceProvider {
                 String tier = JsonSupport.text(plan, "tier");
                 String expiresAt = JsonSupport.text(plan, "expires_at");
                 if (tier != null && !tier.isBlank()) {
-                    b.detail("订阅套餐", tier);
+                    builder.detail("订阅套餐", tier);
                 }
                 if (expiresAt != null && !expiresAt.isBlank()) {
-                    b.detail("套餐到期", expiresAt);
+                    builder.detail("套餐到期", expiresAt);
                 }
             }
             String accountStatus = JsonSupport.text(subData, "account_status");
             if (accountStatus != null && !accountStatus.isBlank()) {
-                b.detail("账户状态", accountStatus);
+                builder.detail("账户状态", accountStatus);
             }
-            addWindow(b, subData, "quota_5_hour", "5小时窗口");
-            addWindow(b, subData, "quota_7_day", "7天窗口");
-            addMonthly(b, subData, "quota_monthly", "每月窗口");
+            addWindow(builder, subData, "quota_5_hour", "5小时窗口");
+            addWindow(builder, subData, "quota_7_day", "7天窗口");
+            addMonthly(builder, subData, "quota_monthly", "每月窗口");
         }
 
-        return b.build();
+        return builder.build();
     }
 
     /** 解析一个滚动窗口：usage_percentage 为已用比例（0-1），剩余 = (1 - usage) * 100。 */
-    private static void addWindow(BalanceSnapshot.Builder b, JsonNode subData, String key, String label) {
+    private static void addWindow(BalanceSnapshot.Builder builder, JsonNode subData, String key, String label) {
         JsonNode w = subData == null ? null : subData.get(key);
         if (w == null || !w.isObject()) {
             return;
@@ -163,20 +163,20 @@ public final class ZenMuxProvider implements BalanceProvider {
                         ? remainingFlows / maxFlows * 100.0 : -1);
 
         if (remainingPercent >= 0) {
-            b.detail(label, String.format("剩余 %.1f%%", remainingPercent));
+            builder.detail(label, String.format("剩余 %.1f%%", remainingPercent));
             if (resetsAt != null && !resetsAt.isBlank()) {
-                b.detail(label + "重置", resetsAt);
+                builder.detail(label + "重置", resetsAt);
             }
-            b.metric(ProviderCapability.QUOTA, label + "额度", remainingPercent, "%", remainingPercent,
+            builder.metric(ProviderCapability.QUOTA, label + "额度", remainingPercent, "%", remainingPercent,
                     "ZenMux 滚动窗口");
         }
         if (remainingFlows != null) {
-            b.detail(label + "剩余 Flows", String.format("%.1f", remainingFlows));
+            builder.detail(label + "剩余 Flows", String.format("%.1f", remainingFlows));
         }
     }
 
     /** 每月窗口只有上限（无实时用量），展示上限信息。 */
-    private static void addMonthly(BalanceSnapshot.Builder b, JsonNode subData, String key, String label) {
+    private static void addMonthly(BalanceSnapshot.Builder builder, JsonNode subData, String key, String label) {
         JsonNode w = subData == null ? null : subData.get(key);
         if (w == null || !w.isObject()) {
             return;
@@ -184,10 +184,10 @@ public final class ZenMuxProvider implements BalanceProvider {
         Double maxFlows = JsonSupport.number(w, "max_flows");
         Double maxValueUsd = JsonSupport.number(w, "max_value_usd");
         if (maxFlows != null) {
-            b.detail(label + "上限", String.format("%.0f Flows", maxFlows));
+            builder.detail(label + "上限", String.format("%.0f Flows", maxFlows));
         }
         if (maxValueUsd != null) {
-            b.detail(label + "上限金额", String.format("$%.2f", maxValueUsd));
+            builder.detail(label + "上限金额", String.format("$%.2f", maxValueUsd));
         }
     }
 

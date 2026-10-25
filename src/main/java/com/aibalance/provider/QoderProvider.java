@@ -132,34 +132,34 @@ public final class QoderProvider implements BalanceProvider {
         Quota user = parseQuota(usage, orgMode ? "orgResourcePackage" : "userQuota");
         Quota addOn = parseQuota(usage, "addOnQuota");
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
 
         if (user != null && user.remaining != null) {
             String unit = user.unit == null ? "Credits" : capitalize(user.unit);
-            b.label("剩余 Credits").currency(unit).amount(user.remaining);
+            builder.label("剩余 Credits").currency(unit).amount(user.remaining);
             Double percent = (user.total != null && user.total > 0)
                     ? user.remaining / user.total * 100.0 : null;
-            b.percent(percent);
-            b.metric(ProviderCapability.QUOTA, "剩余 Credits", user.remaining, unit, percent,
+            builder.percent(percent);
+            builder.metric(ProviderCapability.QUOTA, "剩余 Credits", user.remaining, unit, percent,
                     orgMode ? "Qoder 组织资源包" : "Qoder 个人额度");
             if (user.total != null) {
-                b.detail("总配额", String.format("%.2f %s", user.total, unit));
+                builder.detail("总配额", String.format("%.2f %s", user.total, unit));
             }
             if (user.used != null) {
-                b.detail("已使用", String.format("%.2f %s", user.used, unit));
+                builder.detail("已使用", String.format("%.2f %s", user.used, unit));
             }
         } else {
-            b.label("剩余 Credits").currency("Credits").amount(null);
+            builder.label("剩余 Credits").currency("Credits").amount(null);
         }
 
         if (addOn != null && addOn.remaining != null && addOn.remaining > 0) {
             String unit = addOn.unit == null ? "Credits" : capitalize(addOn.unit);
-            b.detail("赠额 Credits", String.format("%.2f %s", addOn.remaining, unit));
+            builder.detail("赠额 Credits", String.format("%.2f %s", addOn.remaining, unit));
         }
 
         Double expiresAt = JsonSupport.number(usage, "expiresAt");
         if (expiresAt != null && expiresAt > 0) {
-            b.detail("额度到期", formatEpoch(expiresAt.longValue()));
+            builder.detail("额度到期", formatEpoch(expiresAt.longValue()));
         }
 
         // 套餐信息
@@ -169,18 +169,18 @@ public final class QoderProvider implements BalanceProvider {
                 planName = JsonSupport.text(plan, "planTier");
             }
             if (planName != null && !planName.isBlank()) {
-                b.detail("当前套餐", planName);
+                builder.detail("当前套餐", planName);
             }
             String endDate = JsonSupport.text(plan, "endDate");
             if (endDate == null) {
                 endDate = JsonSupport.text(plan, "end_date");
             }
             if (endDate != null && !endDate.isBlank()) {
-                b.detail("套餐到期", endDate);
+                builder.detail("套餐到期", endDate);
             }
         }
 
-        return b.build();
+        return builder.build();
     }
 
     /** 解析 usage 响应中的一个额度对象。 */

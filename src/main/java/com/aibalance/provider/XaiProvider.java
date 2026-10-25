@@ -122,12 +122,12 @@ public final class XaiProvider implements BalanceProvider {
                     .message("无法识别响应格式: " + truncate(root.toString())).build();
         }
         String teamId = JsonSupport.text(root, "team_id");
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
-        b.label("预付余额").currency("USD").amount(amountUsd);
-        b.metric(ProviderCapability.BALANCE, "预付余额", amountUsd, "USD", null,
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
+        builder.label("预付余额").currency("USD").amount(amountUsd);
+        builder.metric(ProviderCapability.BALANCE, "预付余额", amountUsd, "USD", null,
                 teamId == null ? "xAI prepaid/balance（美分）" : "团队 " + teamId + "（美分）");
         if (totalVal != null) {
-            b.detail("余额（美分）", totalVal);
+            builder.detail("余额（美分）", totalVal);
         }
         // changes[]：最近 3 条余额变动（amount.val 为美分，负=支出）
         JsonNode changes = root.get("changes");
@@ -157,12 +157,12 @@ public final class XaiProvider implements BalanceProvider {
                     val.append(timeShort);
                 }
                 if (val.length() > 0) {
-                    b.detail(label, val.toString());
+                    builder.detail(label, val.toString());
                 }
                 shown++;
             }
         }
-        return b.build();
+        return builder.build();
     }
 
     /** 兼容旧字段候选：prepaid_balance.available_credits / .credits / .amount / balance / credits / amount。 */

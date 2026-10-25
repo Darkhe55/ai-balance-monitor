@@ -95,25 +95,25 @@ public final class MoonshotProvider implements BalanceProvider {
             currency = "CNY";
         }
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName)
                 .label("可用余额")
                 .currency(currency)
                 .amount(available);
         if (cash != null) {
-            b.detail("现金余额", String.format("%.2f %s", cash, currency));
+            builder.detail("现金余额", String.format("%.2f %s", cash, currency));
         }
         if (voucher != null && voucher > 0) {
-            b.detail("代金券", String.format("%.2f %s", voucher, currency));
+            builder.detail("代金券", String.format("%.2f %s", voucher, currency));
         }
         if (tempVoucher != null && tempVoucher > 0) {
-            b.detail("临时代金券", String.format("%.2f %s", tempVoucher, currency));
+            builder.detail("临时代金券", String.format("%.2f %s", tempVoucher, currency));
         }
         if (tempCash != null && tempCash > 0) {
-            b.detail("临时现金", String.format("%.2f %s", tempCash, currency));
+            builder.detail("临时现金", String.format("%.2f %s", tempCash, currency));
         }
         if (available == null) {
-            b.message("未返回可用余额");
+            builder.message("未返回可用余额");
         }
-        return b.build();
+        return builder.build();
     }
 }

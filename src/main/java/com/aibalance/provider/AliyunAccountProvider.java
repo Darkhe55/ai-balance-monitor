@@ -150,7 +150,7 @@ public final class AliyunAccountProvider implements BalanceProvider {
             profile.setHttpClientConfig(clientCfg);
             DefaultAcsClient client = new DefaultAcsClient(profile);
 
-            BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, config.getId(), config.getName());
+            BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, config.getId(), config.getName());
 
             // 1) 账户余额 QueryAccountBalance（显式 HTTPS：SDK 注册 endpoint 的默认协议是 HTTP）
             com.aliyuncs.bssopenapi.model.v20171214.QueryAccountBalanceRequest balReq =
@@ -175,7 +175,7 @@ public final class AliyunAccountProvider implements BalanceProvider {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.ERROR).message("余额响应格式异常").build();
             }
-            BalanceSnapshot.Builder afterBalance = fromBalanceJson(b, balJson);
+            BalanceSnapshot.Builder afterBalance = fromBalanceJson(builder, balJson);
             if (afterBalance == null) {
                 return BalanceSnapshot.of(pid, config.getId(), config.getName(),
                         BalanceSnapshot.Status.ERROR)
@@ -277,7 +277,7 @@ public final class AliyunAccountProvider implements BalanceProvider {
     }
 
     /** 解析 QueryAccountBalance 响应并合并进快照；接口报错返回 null。 */
-    static BalanceSnapshot.Builder fromBalanceJson(BalanceSnapshot.Builder b, JsonNode root) {
+    static BalanceSnapshot.Builder fromBalanceJson(BalanceSnapshot.Builder builder, JsonNode root) {
         if (root.get("Success") != null && !root.get("Success").asBoolean(false)) {
             return null;
         }
@@ -299,20 +299,20 @@ public final class AliyunAccountProvider implements BalanceProvider {
             currency = "CNY";
         }
         Double main = available != null ? available : cash;
-        b.label("账户余额").currency(currency).amount(main);
-        b.metric(ProviderCapability.BALANCE, "账户余额", main, currency, null,
+        builder.label("账户余额").currency(currency).amount(main);
+        builder.metric(ProviderCapability.BALANCE, "账户余额", main, currency, null,
                 "阿里云 SDK QueryAccountBalance");
         if (cash != null) {
-            b.detail("可用现金余额", String.format("%.2f %s", cash, currency));
+            builder.detail("可用现金余额", String.format("%.2f %s", cash, currency));
         }
         if (creditAmount != null) {
-            b.detail("信控额度", String.format("%.2f %s", creditAmount, currency));
+            builder.detail("信控额度", String.format("%.2f %s", creditAmount, currency));
         }
-        return b;
+        return builder;
     }
 
     /** 解析 QueryAccountBill 响应并合并进快照（账单为附加明细，失败静默跳过）。 */
-    static void fromBillJson(BalanceSnapshot.Builder b, JsonNode root) {
+    static void fromBillJson(BalanceSnapshot.Builder builder, JsonNode root) {
         if (root.get("Success") != null && !root.get("Success").asBoolean(false)) {
             return;
         }
@@ -349,18 +349,18 @@ public final class AliyunAccountProvider implements BalanceProvider {
             }
         }
         String cycle = JsonSupport.text(data, "BillingCycle");
-        b.metric(ProviderCapability.COST, "当月费用（原价）", pretaxTotal, "CNY", null,
+        builder.metric(ProviderCapability.COST, "当月费用（原价）", pretaxTotal, "CNY", null,
                 cycle == null ? "阿里云 QueryAccountBill" : "阿里云账单 " + cycle);
         if (cashTotal > 0) {
-            b.detail("账单现金支付", String.format("%.2f CNY", cashTotal));
+            builder.detail("账单现金支付", String.format("%.2f CNY", cashTotal));
         }
         if (prepaidTotal > 0) {
-            b.detail("账单预付/代金抵扣", String.format("%.2f CNY", prepaidTotal));
+            builder.detail("账单预付/代金抵扣", String.format("%.2f CNY", prepaidTotal));
         }
         byProduct.entrySet().stream()
                 .sorted((x, y) -> Double.compare(y.getValue(), x.getValue()))
                 .limit(8)
-                .forEach(e -> b.detail("产品 " + e.getKey(), String.format("%.2f CNY", e.getValue())));
+                .forEach(e -> builder.detail("产品 " + e.getKey(), String.format("%.2f CNY", e.getValue())));
     }
 
     private static String firstErrorOf(JsonNode root) {

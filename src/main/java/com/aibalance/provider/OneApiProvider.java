@@ -109,14 +109,14 @@ public class OneApiProvider implements BalanceProvider {
             Double quota = JsonSupport.number(data, "quota");
             Double usedQuota = JsonSupport.number(data, "usedQuota");
             if (quota != null) {
-                BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, config.getId(), config.getName())
+                BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, config.getId(), config.getName())
                         .label("剩余配额").currency("USD")
                         .amount(quota / QUOTA_PER_USD);
                 if (usedQuota != null && quota + usedQuota > 0) {
-                    b.percent(100.0 * quota / (quota + usedQuota));
+                    builder.percent(100.0 * quota / (quota + usedQuota));
                 }
-                b.detail("已用配额", String.format("$%.2f", usedQuota == null ? 0 : usedQuota / QUOTA_PER_USD));
-                return b.build();
+                builder.detail("已用配额", String.format("$%.2f", usedQuota == null ? 0 : usedQuota / QUOTA_PER_USD));
+                return builder.build();
             }
         }
 
@@ -124,31 +124,31 @@ public class OneApiProvider implements BalanceProvider {
         Double totalUsage = JsonSupport.number(root, "total_usage");
         Double totalGrant = JsonSupport.number(root, "total_grant");
         if (totalUsage != null || totalGrant != null) {
-            BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, config.getId(), config.getName())
+            BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, config.getId(), config.getName())
                     .label("剩余额度").currency("USD");
             if (totalGrant != null && totalUsage != null) {
                 double remaining = (totalGrant - totalUsage) / 100.0;
-                b.amount(remaining);
+                builder.amount(remaining);
                 if (totalGrant > 0) {
-                    b.percent(100.0 * (totalGrant - totalUsage) / totalGrant);
+                    builder.percent(100.0 * (totalGrant - totalUsage) / totalGrant);
                 }
-                b.detail("已用额度", String.format("$%.2f", totalUsage / 100.0));
+                builder.detail("已用额度", String.format("$%.2f", totalUsage / 100.0));
             }
-            return b.build();
+            return builder.build();
         }
 
         // 格式3: OpenAI 兼容 credit_grants
         JsonNode grants = root.get("grants");
         if (grants != null && grants.isArray() && grants.size() > 0) {
-            BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, config.getId(), config.getName())
+            BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, config.getId(), config.getName())
                     .label("剩余额度").currency("USD");
             double totalRemaining = 0;
             for (JsonNode grant : grants) {
                 Double remaining = JsonSupport.number(grant, "remaining_amount");
                 if (remaining != null) totalRemaining += remaining;
             }
-            b.amount(totalRemaining);
-            return b.build();
+            builder.amount(totalRemaining);
+            return builder.build();
         }
 
         return null;
@@ -165,25 +165,25 @@ public class OneApiProvider implements BalanceProvider {
         Double usedQuota = JsonSupport.number(data, "usedQuota");
         Double requestCount = JsonSupport.number(data, "requestCount");
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName)
                 .label("剩余配额").currency("USD")
                 .amount(quota == null ? null : quota / QUOTA_PER_USD);
         if (quota != null) {
             if (usedQuota != null && quota + usedQuota > 0) {
-                b.percent(100.0 * quota / (quota + usedQuota));
+                builder.percent(100.0 * quota / (quota + usedQuota));
             }
-            b.detail("配额原始值", String.format("%,.0f", quota));
+            builder.detail("配额原始值", String.format("%,.0f", quota));
         } else {
-            b.message("未返回 quota 字段");
+            builder.message("未返回 quota 字段");
         }
         if (usedQuota != null) {
-            b.detail("已用配额", String.format("$ %.2f", usedQuota / QUOTA_PER_USD));
+            builder.detail("已用配额", String.format("$ %.2f", usedQuota / QUOTA_PER_USD));
         }
         if (requestCount != null) {
-            b.detail("累计请求", String.format("%,.0f 次", requestCount));
+            builder.detail("累计请求", String.format("%,.0f 次", requestCount));
         }
-        b.detail("换算说明", "按 1 USD = 500000 配额估算");
-        return b.build();
+        builder.detail("换算说明", "按 1 USD = 500000 配额估算");
+        return builder.build();
     }
 
     private static String normalize(String baseUrl) {

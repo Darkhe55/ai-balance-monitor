@@ -90,19 +90,19 @@ public final class KimiCodingProvider implements BalanceProvider {
                     .message("未解析到套餐窗口（非 Kimi Code 订阅 Key？）").build();
         }
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(ProviderId.KIMI_CODING, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(ProviderId.KIMI_CODING, accountId, accountName)
                 .label("Coding 套餐额度").currency("%");
         if (fiveHour != null) {
-            b.amount(100.0 - fiveHour.usedPercent);
-            b.percent(100.0 - fiveHour.usedPercent);
-            b.message(String.format("5 小时窗口剩余 %.0f%%", 100.0 - fiveHour.usedPercent));
-            b.detail("5 小时窗口", fiveHour.text);
+            builder.amount(100.0 - fiveHour.usedPercent);
+            builder.percent(100.0 - fiveHour.usedPercent);
+            builder.message(String.format("5 小时窗口剩余 %.0f%%", 100.0 - fiveHour.usedPercent));
+            builder.detail("5 小时窗口", fiveHour.text);
         }
         if (weekly != null) {
-            b.detail("周窗口", weekly.text);
+            builder.detail("周窗口", weekly.text);
         }
-        b.detail("计量口径", "Kimi Code 订阅额度（会员月度权益为另一套体系）");
-        return b.build();
+        builder.detail("计量口径", "Kimi Code 订阅额度（会员月度权益为另一套体系）");
+        return builder.build();
     }
 
     private static Window5h parseFiveHour(JsonNode root) {

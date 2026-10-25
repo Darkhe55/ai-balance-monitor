@@ -234,7 +234,7 @@ public final class GlmProvider implements BalanceProvider {
         double totalAvailable = 0;
         double totalTotal = 0;
         boolean any = false;
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(ProviderId.GLM, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(ProviderId.GLM, accountId, accountName)
                 .label("可用余额").currency("CNY");
         for (JsonNode item : arr) {
             Double available = JsonSupport.number(item, "available");
@@ -248,7 +248,7 @@ public final class GlmProvider implements BalanceProvider {
             }
             String model = JsonSupport.text(item, "model");
             if (available != null && model != null) {
-                b.detail("模型余额", model + " 可用 " + formatMoney(available)
+                builder.detail("模型余额", model + " 可用 " + formatMoney(available)
                         + (total != null ? " / 总额 " + formatMoney(total) : ""));
             }
         }
@@ -256,14 +256,14 @@ public final class GlmProvider implements BalanceProvider {
             return BalanceSnapshot.of(ProviderId.GLM, accountId, accountName,
                     BalanceSnapshot.Status.ERROR).message("未解析到余额字段（available）").build();
         }
-        b.amount(totalAvailable);
-        b.message(String.format("按量账户可用 %.2f 元", totalAvailable));
+        builder.amount(totalAvailable);
+        builder.message(String.format("按量账户可用 %.2f 元", totalAvailable));
         if (totalTotal > 0) {
-            b.detail("总额", formatMoney(totalTotal));
-            b.detail("已用", formatMoney(Math.max(0, totalTotal - totalAvailable)));
+            builder.detail("总额", formatMoney(totalTotal));
+            builder.detail("已用", formatMoney(Math.max(0, totalTotal - totalAvailable)));
         }
-        b.detail("计量口径", "按量付费账户余额（普通 API Key）");
-        return b.build();
+        builder.detail("计量口径", "按量付费账户余额（普通 API Key）");
+        return builder.build();
     }
 
     private static String formatMoney(double v) {
@@ -292,14 +292,14 @@ public final class GlmProvider implements BalanceProvider {
                 }
             }
         }
-        windows.sort((a, b) -> Double.compare(
+        windows.sort((a, builder) -> Double.compare(
                 a.durationMinutes == null ? 1e18 : a.durationMinutes,
-                b.durationMinutes == null ? 1e18 : b.durationMinutes));
+                builder.durationMinutes == null ? 1e18 : builder.durationMinutes));
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(ProviderId.GLM, accountId, accountName)
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(ProviderId.GLM, accountId, accountName)
                 .label("Coding Plan 额度").currency("%");
         if (plan != null && !plan.isBlank()) {
-            b.detail("套餐档位", plan);
+            builder.detail("套餐档位", plan);
         }
         if (windows.isEmpty()) {
             return BalanceSnapshot.of(ProviderId.GLM, accountId, accountName,
@@ -308,14 +308,14 @@ public final class GlmProvider implements BalanceProvider {
         }
 
         QuotaWindow primary = windows.get(0);
-        b.amount(100.0 - primary.percentage);
-        b.percent(100.0 - primary.percentage);
-        b.message(String.format("5 小时窗口剩余 %.0f%%", 100.0 - primary.percentage));
+        builder.amount(100.0 - primary.percentage);
+        builder.percent(100.0 - primary.percentage);
+        builder.message(String.format("5 小时窗口剩余 %.0f%%", 100.0 - primary.percentage));
         for (QuotaWindow w : windows) {
-            b.detail(windowLabel(w), windowText(w));
+            builder.detail(windowLabel(w), windowText(w));
         }
-        b.detail("计量口径", "积分(credits) 或 tokens，以接口返回为准");
-        return b.build();
+        builder.detail("计量口径", "积分(credits) 或 tokens，以接口返回为准");
+        return builder.build();
     }
 
     private static QuotaWindow parseWindow(JsonNode lim) {

@@ -177,29 +177,29 @@ public final class TencentProvider implements BalanceProvider {
         Double income = centsToYuan(JsonSupport.number(response, "IncomeIntoAccountBalance"));
         Double present = centsToYuan(JsonSupport.number(response, "PresentAccountBalance"));
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, accountId, accountName);
-        b.label("可用余额").currency("CNY").amount(balanceYuan);
-        b.metric(ProviderCapability.BALANCE, "可用余额", balanceYuan, "CNY", null,
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName);
+        builder.label("可用余额").currency("CNY").amount(balanceYuan);
+        builder.metric(ProviderCapability.BALANCE, "可用余额", balanceYuan, "CNY", null,
                 "腾讯云 DescribeAccountBalance");
         if (cash != null) {
-            b.detail("现金余额", String.format("%.2f CNY", cash));
+            builder.detail("现金余额", String.format("%.2f CNY", cash));
         }
         if (creditAmount != null) {
-            b.detail("信用额度", String.format("%.2f CNY", creditAmount));
+            builder.detail("信用额度", String.format("%.2f CNY", creditAmount));
         }
         if (freeze != null) {
-            b.detail("冻结金额", String.format("%.2f CNY", freeze));
+            builder.detail("冻结金额", String.format("%.2f CNY", freeze));
         }
         if (owe != null) {
-            b.detail("欠费金额", String.format("%.2f CNY", owe));
+            builder.detail("欠费金额", String.format("%.2f CNY", owe));
         }
         if (income != null) {
-            b.detail("收益转入余额", String.format("%.2f CNY", income));
+            builder.detail("收益转入余额", String.format("%.2f CNY", income));
         }
         if (present != null) {
-            b.detail("赠送余额", String.format("%.2f CNY", present));
+            builder.detail("赠送余额", String.format("%.2f CNY", present));
         }
-        return b.build();
+        return builder.build();
     }
 
     /** 分 → 元；null 安全。 */

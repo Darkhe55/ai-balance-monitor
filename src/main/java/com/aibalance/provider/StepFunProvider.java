@@ -81,15 +81,15 @@ public final class StepFunProvider implements BalanceProvider {
         Double voucher = JsonSupport.number(root, "total_voucher_balance");
         String type = root.path("type").asText(null);
 
-        BalanceSnapshot.Builder b = BalanceSnapshot.ok(pid, id, name);
-        b.label("账户余额").currency("CNY").amount(balance);
+        BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, id, name);
+        builder.label("账户余额").currency("CNY").amount(balance);
         if (cash != null) {
-            b.detail("累计充值", String.format("%.2f CNY", cash));
+            builder.detail("累计充值", String.format("%.2f CNY", cash));
         }
         if (voucher != null) {
-            b.detail("剩余赠送", String.format("%.2f CNY", voucher));
+            builder.detail("剩余赠送", String.format("%.2f CNY", voucher));
         }
-        b.detail("账户类型", "prepaid".equals(type) ? "预付费" : "postpaid".equals(type) ? "后付费" : (type == null ? "未知" : type));
-        return b.build();
+        builder.detail("账户类型", "prepaid".equals(type) ? "预付费" : "postpaid".equals(type) ? "后付费" : (type == null ? "未知" : type));
+        return builder.build();
     }
 }
