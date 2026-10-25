@@ -703,25 +703,27 @@ public final class FloatingBallView {
 
     /**
      * 剩余比例 → 平滑渐变色（100%→0%：绿 → 黄 → 红）。
-     * 两段线性插值避免分段阈值造成的颜色跳变（"突然变红"）。
+     * 以「已用比例」u = (100-pct)/100 驱动：u=0（满额）为绿、u=0.5（剩 50%）为黄、
+     * u=1（耗尽）为红；两段线性插值避免分段阈值造成的颜色跳变（"突然变红"）。
      */
-    private static String progressColor(double pct) {
-        double t = Math.max(0, Math.min(100, pct)) / 100.0;
+    static String progressColor(double pct) {
+        // 已用比例：0=满额，1=耗尽（修正旧版直接拿剩余比例导致颜色倒挂：100% 变黄、50% 变绿）
+        double u = (100.0 - Math.max(0, Math.min(100, pct))) / 100.0;
         int r;
         int g;
         int b;
-        if (t > 0.5) {
-            // 绿(52,211,153) → 黄(251,191,36)
-            double k = (t - 0.5) * 2.0;
-            r = (int) Math.round(52 + (251 - 52) * k);
-            g = (int) Math.round(211 + (191 - 211) * k);
-            b = (int) Math.round(153 + (36 - 153) * k);
-        } else {
-            // 黄(251,191,36) → 红(248,113,113)
-            double k = t * 2.0;
+        if (u > 0.5) {
+            // 已用过半（剩余 <50%）：黄(251,191,36) → 红(248,113,113)
+            double k = (u - 0.5) * 2.0;
             r = (int) Math.round(251 + (248 - 251) * k);
             g = (int) Math.round(191 + (113 - 191) * k);
             b = (int) Math.round(36 + (113 - 36) * k);
+        } else {
+            // 剩余充足（≥50%）：绿(52,211,153) → 黄(251,191,36)
+            double k = u * 2.0;
+            r = (int) Math.round(52 + (251 - 52) * k);
+            g = (int) Math.round(211 + (191 - 211) * k);
+            b = (int) Math.round(153 + (36 - 153) * k);
         }
         return String.format("#%02x%02x%02x", r, g, b);
     }
