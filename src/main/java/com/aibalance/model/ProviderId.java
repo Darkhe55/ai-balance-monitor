@@ -129,7 +129,7 @@ public enum ProviderId {
             "官方未开放余额/额度查询接口，仅能校验 Key 有效，本入口暂不可用。",
             "双计费 · 均 Key 校验（无公开余额接口）", "云知声 MaaS 账户", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO, BillingMode.SUBSCRIPTION),
-    LONGCAT("LongCat 长猫", "#FF6B35", "https://api.longcat.chat/openai/v1",
+    LONGCAT("LongCat 龙猫", "#FF6B35", "https://api.longcat.chat/openai/v1",
             "官方未开放余额/额度查询接口，仅能校验 Key 有效。",
             "按量付费 + Token Pack · 仅 Key 校验", "LongCat 开放平台", Region.DOMESTIC,
             BillingMode.PAY_AS_YOU_GO, BillingMode.SUBSCRIPTION),
@@ -163,6 +163,10 @@ public enum ProviderId {
             "填 xAI Management API Key（console.x.ai → Billing → API Keys 创建，注意不是模型调用 Key）。组织级 Key 还须在「附加参数」填 team_id=xxx（团队 ID 在 console.x.ai 账户设置查看）。官方接口返回预付余额与变动记录。",
             "按量付费 · 预付余额", "Grok 账户", Region.OVERSEAS,
             BillingMode.PAY_AS_YOU_GO),
+    MISTRAL("Mistral", "#F97316", "https://api.mistral.ai",
+            "填 Mistral API Key（console.mistral.ai → API Keys 创建）。工具调用官方账单接口返回账户 Credits 余额、月度预算与本月花费（EUR，账单接口需 API Key 具备账单/Billing 权限）。",
+            "按量付费 · 官方 Credits 余额", "Mistral 账户", Region.OVERSEAS,
+            BillingMode.PAY_AS_YOU_GO),
 
     // ===== 中转站 / 网关 =====
     ONEAPI("OneAPI / NewAPI 网关", "#F59E0B", "",
@@ -173,17 +177,24 @@ public enum ProviderId {
             "填 OpenRouter API Key（openrouter.ai → Keys 创建）。显示官方 Key 配额（limit/usage）与账户 Credits 余额。",
             "按量付费 · Key 配额 + Credits", "OpenRouter 账户", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO),
-    OPENCODE_GO("OpenCode Go 套餐", "#0EA5E9", "https://opencode.ai",
-            "填 OpenCode Go 套餐 API Key。官方接口查询用量百分比和重置时间。",
-            "套餐用量 · 剩余比例", "OpenCode Go", Region.GATEWAY,
+    /**
+     * OpenCode Go 订阅套餐（Go / Go Plus / Go Teams 三个档位共用同一用量窗口接口）。
+     * 注意：本入口仅适用于 OpenCode Go 系列订阅套餐，不适用于 OpenCode Console 的按量充值余额。
+     * 枚举名保留 OPENCODE_GO 以兼容旧配置文件，展示名统一为「OpenCode 套餐」。
+     */
+    OPENCODE_GO("OpenCode 套餐", "#0EA5E9", "https://opencode.ai",
+            "填 OpenCode Go / Go Plus / Go Teams 订阅套餐 API Key（opencode.ai → Console 订阅）。官方接口查询 5 小时/每周/每月用量窗口的剩余百分比和重置时间。OpenCode Console 按量充值余额不适用本接口。",
+            "订阅套餐 · 用量窗口", "OpenCode 订阅账户", Region.GATEWAY,
             BillingMode.SUBSCRIPTION),
     COMMANDCODE("CommandCode", "#8B5CF6", "https://api.commandcode.ai",
             "填 CommandCode API 密钥（在 commandcode.ai 控制台创建）。官方接口查询信用额度和订阅信息。",
             "信用额度 · 订阅状态", "CommandCode", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO),
     TOAPIS("ToAPIs", "#10B981", "https://toapis.cn",
-            "填 ToAPIs API 令牌。国内站默认地址 https://toapis.cn。",
-            "网关配额 · 剩余额度", "ToAPIs", Region.GATEWAY,
+            "填 ToAPIs API 令牌（toapis.cn 控制台 → API 密钥）。官方接口查询令牌余额（GET /v1/balance）"
+                    + "与账户整体余额（GET /v1/user/balance）：剩余/已用余额、剩余/已用积分与换算比例"
+                    + "（1 USD = 200 Credits）；不限额令牌显示「不限量套餐」。国内站默认地址 https://toapis.cn。",
+            "网关额度 · 余额与积分", "ToAPIs", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO),
     ZENMUX("ZenMux", "#F59E0B", "https://zenmux.ai",
             "填 ZenMux 平台 API Key（ZenMux 控制台 → 平台/管理 创建 Management API Key；PAYG Key 或订阅套餐 Key 无法查询额度）。默认地址 https://zenmux.ai。",
@@ -408,6 +419,8 @@ public enum ProviderId {
             case TENCENT -> ProviderCapability.set(ProviderCapability.BALANCE);
             case BAIDU -> ProviderCapability.set(ProviderCapability.BALANCE);
             case XAI -> ProviderCapability.set(ProviderCapability.BALANCE);
+            case MISTRAL -> ProviderCapability.set(
+                    ProviderCapability.BALANCE, ProviderCapability.COST, ProviderCapability.SPEND_LIMIT);
             case GLM -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
             case MINIMAX -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
             case MINIMAX_INTL -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);

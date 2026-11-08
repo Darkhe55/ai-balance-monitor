@@ -50,6 +50,7 @@ public final class ProviderRegistry {
         providers.put(ProviderId.UNISOUND, new UnisoundProvider(http));
         providers.put(ProviderId.LONGCAT, new LongCatProvider(http));
         providers.put(ProviderId.MODELSCOPE, new ModelScopeProvider(http));
+        providers.put(ProviderId.MISTRAL, new MistralProvider(http, ProviderId.MISTRAL));
         providers.put(ProviderId.OPENCODE_GO, new OpenCodeGoProvider(http, ProviderId.OPENCODE_GO));
         providers.put(ProviderId.COMMANDCODE, new CommandCodeProvider(http, ProviderId.COMMANDCODE));
         providers.put(ProviderId.TOAPIS, new ToApisProvider(http, ProviderId.TOAPIS));

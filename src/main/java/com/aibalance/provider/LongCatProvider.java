@@ -8,7 +8,7 @@ import com.aibalance.service.HttpSupport;
 import java.util.Map;
 
 /**
- * LongCat（美团长猫）：官方未开放余额查询 REST API，
+ * LongCat（龙猫）：官方未开放余额查询 REST API，
  * 仅通过调用 models 接口校验 Key 有效性。
  * Base URL: https://api.longcat.chat/openai/v1
  */

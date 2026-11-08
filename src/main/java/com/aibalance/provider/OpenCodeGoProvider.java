@@ -10,9 +10,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 
 /**
- * OpenCode Go 套餐专用 Provider。
+ * OpenCode Go 订阅套餐（Go / Go Plus / Go Teams）专用 Provider。
  * 官方用量端点：GET {base}/zen/go/v1/usage
  * 返回订阅套餐各时间窗口（5 小时/每周/每月）的已用百分比与重置时间。
+ * 三个档位共用同一接口与窗口结构；OpenCode Console 按量充值余额不适用本接口。
  *
  * <p>响应结构（{@code usage} 下的每个窗口为一个对象）：
  * <pre>{@code
@@ -103,7 +104,7 @@ public final class OpenCodeGoProvider implements BalanceProvider {
         builder.label("套餐剩余").currency("%").amount(primary.remainingPercent());
         builder.percent(primary.remainingPercent());
         builder.metric(ProviderCapability.QUOTA, "套餐剩余", primary.remainingPercent(), "%",
-                primary.remainingPercent(), "OpenCode Go " + primary.displayName);
+                primary.remainingPercent(), "OpenCode " + primary.displayName);
 
         // 各窗口明细：label 含「窗口」、值含「剩余 X%」，供主卡片与悬浮球面板统一提取
         addWindowDetail(builder, rolling, "5小时窗口");
