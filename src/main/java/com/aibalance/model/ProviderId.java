@@ -174,6 +174,14 @@ public enum ProviderId {
             "填 Mistral API Key（console.mistral.ai → API Keys 创建）。工具调用官方账单接口返回账户 Credits 余额、月度预算与本月花费（EUR，账单接口需 API Key 具备账单/Billing 权限）。",
             "按量付费 · 官方 Credits 余额", "Mistral 账户", Region.OVERSEAS,
             BillingMode.PAY_AS_YOU_GO),
+    NOVITA("Novita AI", "#7C3AED", "https://api.novita.ai",
+            "填 Novita AI API Key（novita.ai 控制台 → API Keys 创建）。官方余额接口 GET /openapi/v1/billing/balance/detail 返回可用余额、充值余额、信用额度、待扣款项与未付账单（单位 1/10000 USD）。",
+            "按量付费 · 官方余额", "Novita AI 账户", Region.OVERSEAS,
+            BillingMode.PAY_AS_YOU_GO),
+    FAL("fal.ai", "#7B3FE4", "https://api.fal.ai",
+            "填 fal.ai API Key（fal.ai 控制台创建，需带 READONLY/BILLING 预置权限或含 billing:usage:read 权限）。官方账户账单接口 GET /v1/account/billing?expand=credits 返回当前可用余额与币种。",
+            "按量付费 · 官方余额", "fal.ai 账户", Region.OVERSEAS,
+            BillingMode.PAY_AS_YOU_GO),
 
     // ===== 中转站 / 网关 =====
     ONEAPI("OneAPI / NewAPI 网关", "#F59E0B", "",
@@ -342,6 +350,10 @@ public enum ProviderId {
                     "（commandcode.ai 控制台创建 API 密钥）";
             case MODELSCOPE ->
                     "ms-…（modelscope.cn 控制台 → 访问令牌 生成）";
+            case NOVITA ->
+                    "（novita.ai 控制台 → API Keys 创建，Bearer 认证）";
+            case FAL ->
+                    "（fal.ai 控制台创建带 READONLY/BILLING 权限的 API Key）";
             default -> "sk-…（仅保存在本机）";
         };
     }
@@ -431,6 +443,7 @@ public enum ProviderId {
             case XAI -> ProviderCapability.set(ProviderCapability.BALANCE);
             case MISTRAL -> ProviderCapability.set(
                     ProviderCapability.BALANCE, ProviderCapability.COST, ProviderCapability.SPEND_LIMIT);
+            case NOVITA, FAL -> ProviderCapability.set(ProviderCapability.BALANCE);
             case GLM -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
             case MINIMAX -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
             case MINIMAX_INTL -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
