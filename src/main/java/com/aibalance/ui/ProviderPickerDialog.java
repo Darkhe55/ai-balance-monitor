@@ -213,7 +213,10 @@ final class ProviderPickerDialog {
                 ProviderId.BAILIAN_TOKENPLAN, "bailian",
                 ProviderId.BAILIAN_ACCOUNT, "bailian",
                 ProviderId.BAILIAN_ACCOUNT_INTL, "bailian",
-                ProviderId.MINIMAX_INTL, "minimax");
+                ProviderId.MINIMAX_INTL, "minimax",
+                // Qoder 国内站/国际站共用同一枚官方图标（否则会因文件名不匹配退化成首字母徽标）
+                ProviderId.QODER_CN, "qoder",
+                ProviderId.QODER_INTL, "qoder");
 
         private LogoCache() {
         }
