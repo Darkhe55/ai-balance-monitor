@@ -33,16 +33,19 @@ import java.util.Set;
 final class ProviderPickerDialog {
 
     /** 暂时不提供新增的厂商入口：官网未公开余额接口或接口不能长期使用。 */
+    @SuppressWarnings("deprecation") // KIMI_CODING 已废弃，但入口需保持置灰展示以说明原因
     private static final Set<ProviderId> TEMP_UNSUPPORTED_PICK = Set.of(
-            ProviderId.GLM, ProviderId.GEMINI, ProviderId.GEMINI_BILLING,
+            ProviderId.GLM, ProviderId.GEMINI,
             ProviderId.XIAOMI, ProviderId.UNISOUND, ProviderId.SILICONFLOW,
             ProviderId.KIMI_CODING, ProviderId.LONGCAT);
 
     /** 置灰入口的悬浮提示文案（按厂商给出准确原因，不编造）。 */
     private static final String UNSUPPORTED_HINT = "当前厂商不可用，计划在未来加入支持";
     /** 官方余额接口已下线的厂商专用提示。 */
+    @SuppressWarnings("deprecation") // KIMI_CODING 已废弃，但专用提示仍需引用枚举
     private static final Map<ProviderId, String> UNSUPPORTED_HINTS = Map.of(
-            ProviderId.SILICONFLOW, "官方 /user/info 余额接口已于 2026-08-14 下线，暂无法查询余额");
+            ProviderId.SILICONFLOW, "官方 /user/info 余额接口已于 2026-08-14 下线，暂无法查询余额",
+            ProviderId.KIMI_CODING, "该入口已过时：Kimi Coding 订阅 Key 创建入口已下线，余额请用「Kimi 月之暗面（中国区）」入口查询");
 
     private ProviderPickerDialog() {
     }

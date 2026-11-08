@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings("deprecation") // KIMI_CODING 已废弃，测试仅验证旧配置兼容解析
 class KimiCodingProviderTest {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();

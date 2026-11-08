@@ -34,8 +34,15 @@ public enum ProviderId {
             "同一厂商两种计费、Key 互不通用：①Token Plan 订阅套餐 → 填套餐专用 Key，官方接口 GET /v1/token_plan/remains 显示各套餐窗口剩余额度；②按量付费 → 填普通 Key（钱包余额无公开接口，仅校验 Key 有效）。中国站 minimaxi.com，国际站 minimax.io。",
             "双计费 · 套餐额度 / 按量校验", "MiniMax 国际站账户", Region.OVERSEAS,
             BillingMode.AUTO, BillingMode.PAY_AS_YOU_GO, BillingMode.SUBSCRIPTION),
+    /**
+     * @deprecated 入口已过时：Kimi Coding 订阅套餐的 Key 创建入口已从官网移除（官方现为
+     * Kimi API Platform，platform.kimi.com/console/api-keys 创建平台 Key）。
+     * Kimi 余额请用「Kimi 月之暗面（中国区）」/「Kimi（国际区）」入口查询（官方 GET /v1/users/me/balance）。
+     * 保留本枚举仅用于兼容旧配置文件反序列化，UI 选型弹窗中置灰不可新增。
+     */
+    @Deprecated
     KIMI_CODING("Kimi Coding 套餐", "#6C5CE7", "https://api.kimi.com",
-            "填 Kimi Code 订阅套餐专用 Key。官方接口显示 5 小时/周窗口额度。默认国内 api.kimi.com，海外填 api.kimi.ai。",
+            "该入口已过时：Kimi Coding 订阅 Key 创建入口已下线，余额请用「Kimi 月之暗面（中国区）」入口查询（官方 /v1/users/me/balance）。保留仅兼容旧配置。",
             "订阅套餐 · Coding 额度", "Kimi Coding 套餐账户", Region.DOMESTIC,
             BillingMode.SUBSCRIPTION),
     /**
@@ -156,7 +163,7 @@ public enum ProviderId {
             "模型调用 · Key 校验", "Gemini 账户", Region.OVERSEAS,
             BillingMode.PAY_AS_YOU_GO),
     GEMINI_BILLING("Google Gemini（Cloud 账单）", "#4285F4", "https://billingbudgets.googleapis.com/v1",
-            "账号授权方式：①需有 Google Cloud 项目并开通 Billing Budget API；②把 Base URL 补全为 …/v1/billingAccounts/{账单ID}（账单ID 在 Google Cloud 控制台 → 结算 → 账户管理查看，例 …/billingAccounts/0123-4567-8901）；③凭证字段填 OAuth 访问令牌（在已登录 gcloud 的机器执行 gcloud auth print-access-token 生成，约 1 小时有效，过期需重新获取）。查询预算金额与花费。",
+            "浏览器 OAuth 授权：①需有 Google Cloud 项目并开通 Billing Budget API；②把 Base URL 补全为 …/v1/billingAccounts/{账单ID}（账单ID 在 Google Cloud 控制台 → 结算 → 账户管理查看，例 …/billingAccounts/0123-4567-8901）；③点击「通过 Google 浏览器授权」登录 Google 账号，自动填充 Access Token 与 Refresh Token，此后每次检查自动续期。旧方式仍兼容：仅填 gcloud auth print-access-token 的 Access Token（约 1 小时有效）。查询预算金额与花费。",
             "预算 · Google Cloud Billing", "Gemini Cloud 账单账户", Region.OVERSEAS,
             BillingMode.PAY_AS_YOU_GO),
     XAI("xAI / Grok", "#9AA0A6", "https://management-api.x.ai",
@@ -296,7 +303,7 @@ public enum ProviderId {
             case VOLCENGINE -> "火山引擎 AccessKey ID";
             case TENCENT -> "腾讯云 SecretId";
             case BAIDU -> "百度智能云 Access Key ID";
-            case GEMINI_BILLING -> "OAuth 令牌";
+            case GEMINI_BILLING -> "Access Token";
             default -> "API Key";
         };
     }
@@ -309,6 +316,7 @@ public enum ProviderId {
             case VOLCENGINE -> "火山引擎 Secret Access Key";
             case TENCENT -> "腾讯云 SecretKey";
             case BAIDU -> "百度智能云 Secret Access Key";
+            case GEMINI_BILLING -> "Refresh Token";
             default -> "Secret";
         };
     }
@@ -325,7 +333,7 @@ public enum ProviderId {
             case BAIDU ->
                     "b8b4…（百度智能云控制台 → 安全认证 → 访问密钥 AK/SK）";
             case GEMINI_BILLING ->
-                    "ya29…（本机执行 gcloud auth print-access-token 生成，约 1 小时有效）";
+                    "访问令牌（可点击「通过 Google 浏览器授权」获取，或手动 gcloud auth print-access-token）";
             case XAI ->
                     "（console.x.ai → Billing → API Keys 创建，注意不是模型调用 Key）";
             case ZENMUX ->
@@ -349,6 +357,8 @@ public enum ProviderId {
                     "与上方 SecretId 配对的 SecretKey";
             case BAIDU ->
                     "与上方 Access Key ID 配对的 Secret Access Key";
+            case GEMINI_BILLING ->
+                    "刷新令牌（浏览器授权后自动填充，用于自动续期）";
             default -> null;
         };
     }

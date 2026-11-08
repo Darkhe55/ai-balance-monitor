@@ -10,14 +10,14 @@
 
 ## 功能特性
 
-- **一键接入主流 AI 服务（共 26 个入口）**：
-  - **国内**：DeepSeek、Kimi 月之暗面（中国区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站）、Kimi Coding 套餐、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单（中国站）、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound、魔塔社区 ModelScope（魔粒余额）、Qoder（国内站）
+- **一键接入主流 AI 服务（共 27 个入口）**：
+  - **国内**：DeepSeek、Kimi 月之暗面（中国区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站）、Kimi Coding 套餐（已过时，Key 创建入口已下线）、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单（中国站）、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound、魔塔社区 ModelScope（魔粒余额）、Qoder（国内站）
   - **海外**：Kimi（国际区）、MiniMax 海螺（国际站）、OpenAI（API Key / Admin Key）、Anthropic Claude、Google Gemini（API Key / Cloud 账单）、xAI Grok、Mistral、阿里云百炼·账户余额与账单（国际站）、Qoder（国际站）
   - **中转站**：OneAPI / NewAPI 网关、OpenRouter、CommandCode、OpenCode 套餐（Go/Go Plus/Go Teams）、ToAPIs、ZenMux
 - **服务选型弹窗（图标网格）**：添加/编辑账户时点击「服务」打开弹窗，各厂商以**官方 logo 图标卡片**网格展示，按 **国内厂商 / 海外厂商 / 中转站** 分区布局，中转站（OneAPI、OpenRouter）置于最下方；logo 资源离线打包，深色/浅色主题均正常显示，无 logo 的服务自动回退品牌色徽标
 - **实时刷新**：自动刷新（15 秒 / 30 秒 / 60 秒 / 5 分钟可调）或手动刷新；所有账户**并行查询、互不阻塞**
 - **每账户独立状态**：在线 / Key 无效 / 请求超时 / 查询失败 / 未配置，单点失败不影响其他卡片
-- **Token 计划（套餐）额度**：智谱 GLM Coding Plan、MiniMax Token Plan、Kimi Coding 套餐的 5 小时/周窗口额度；阿里云百炼 Token Plan 的 Credits 剩余额度；OpenRouter Key 配额（limit/usage）与账户 Credits；OpenAI Admin Key 的组织级费用与用量；Claude 响应头速率配额
+- **Token 计划（套餐）额度**：智谱 GLM Coding Plan、MiniMax Token Plan 的 5 小时/周窗口额度（Kimi Coding 套餐入口已过时）；阿里云百炼 Token Plan 的 Credits 剩余额度；OpenRouter Key 配额（limit/usage）与账户 Credits；OpenAI Admin Key 的组织级费用与用量；Claude 响应头速率配额
 - **计费形式明确标注**：添加账户时表单自动显示该服务的计费形式标签（按量付费余额 / 按量付费配额 / 订阅套餐额度 / 云账户余额+账单 / 网关额度等），名称输入框示例随所选服务切换，避免误写成其他厂商名称
 - **Base URL 全服务可配**：所有服务均显示 Base URL 输入框并**预填官方默认地址**（如 DeepSeek `https://api.deepseek.com`、阿里云百炼中国站 `https://business.aliyuncs.com`），可手动修改为自定义 / 代理地址（网关类无官方通用域名，需自行填写，已明确标注必填）
 - **明暗双主题**：右上角一键切换深色/浅色，选择持久化到本地配置，重启后保持；**Windows 系统标题栏同步跟随主题**（经 DWM `DWMWA_USE_IMMERSIVE_DARK_MODE` 属性设置，否则深色界面会配一条系统默认标题栏）
@@ -33,6 +33,8 @@
 
 ## 支持的 AI 服务与数据口径
 
+> 主流官方平台 / 第三方中转站的余额查询支持情况调研，见 **[docs/余额查询支持调研.md](docs/余额查询支持调研.md)**（已加入支持 / 确认无法支持 / 等待开发三分类）。
+
 ### 国内厂商
 
 | 服务入口 | 查询方式 | 展示内容 |
@@ -43,7 +45,7 @@
 | 硅基流动 SiliconFlow | `GET /v1/user/info`——官方已于 **2026-08-14 停止服务**（410 Gone，无替代 API） | 存量账户提示「官方余额接口已下线」，不再展示余额 |
 | 智谱 GLM | **双计费**：Coding Plan 订阅（`GET /api/monitor/usage/quota/limit`，订阅 Key）；按量付费（`GET /api/paas/v4/balance`，普通 Key） | 套餐：5 小时/周窗口已用与剩余百分比、套餐档位、重置时间；按量：可用余额/总额/已用（按模型明细） |
 | MiniMax 海螺（中国站 / 国际站） | **双计费**：Token Plan 订阅（`GET /v1/token_plan/remains`，订阅 Key）；按量付费（`GET /v1/models` 校验，普通 Key，钱包余额无公开 API）。**套餐接口 HTTP 恒 200，业务错误在 `base_resp.status_code`（1004=鉴权失败）** | 套餐：5 小时/周窗口额度百分比与重置时间；按量：Key 有效性 + 速率配额（如实标注无余额接口） |
-| Kimi Coding 套餐 | `GET /coding/v1/usages`（Kimi Code 订阅 Key） | Coding 套餐额度：5 小时速率窗口与周请求池已用/剩余 |
+| Kimi Coding 套餐（已过时） | `GET /coding/v1/usages`（Kimi Code 订阅 Key） | 入口已过时：Kimi Coding 订阅 Key 创建入口已下线，余额请用「Kimi 月之暗面（中国区）/（国际区）」入口查询；保留仅兼容旧配置 |
 | 阿里云百炼·Token Plan 额度 | 官方 OpenAPI `ListSubscriptionSharedPackages` + `GetSubscriptionSeatDetails`（域名 `modelstudio.cn-beijing.aliyuncs.com`，**ACS3-HMAC-SHA256 签名**，填阿里云 AccessKey ID/Secret；RAM 需 `AliyunModelStudioReadOnlyAccess`） | 各订阅席位/共享包 **Credits 周期总额与剩余额度进度条**、周期起止时间、席位类型与状态；主金额 = 全部 Credits 剩余之和 |
 | 阿里云百炼·账户余额与账单（中国站） | 阿里云官方 SDK（BssOpenApi 2017-12-14）：`QueryAccountBalance` + `QueryAccountBill`；中国站 endpoint `business.aliyuncs.com`，填中国站 AccessKey ID/Secret；RAM 需 `AliyunFinanceConsoleReadOnlyAccess` | 账户余额、可用现金、信控额度 + 当月账单费用明细（账单接口失败不阻断余额展示） |
 | 火山方舟 | 费用中心 `QueryBalanceAcct`（`billing.volcengineapi.com`，AK/SK 签名） | 可用余额、现金余额、欠费、冻结、信控额度 |
@@ -64,7 +66,7 @@
 | OpenAI（Admin Key） | `GET /v1/organization/costs`（费用，按 project/line_item 分组）+ `GET /v1/organization/usage/completions`（用量，按 model 分组），需 Owner/Admin 角色 Key | 近 30 天组织级费用明细与用量 |
 | Anthropic Claude | 无公开余额接口；`GET /v1/models` 校验 Key + 读取 `anthropic-ratelimit-*` 响应头 | 令牌/请求配额剩余（配额窗口内） |
 | Google Gemini（API Key） | `GET /models?key=…` 校验 Key 有效性 | Key 状态、可用模型数；余额/预算请改用 Cloud 账单入口 |
-| Google Gemini（Cloud 账单） | Cloud Billing Budget API `GET …/budgets`：Base URL 需补全为 `…/v1/billingAccounts/{账单ID}`，凭证填 OAuth 访问令牌（`gcloud auth print-access-token`，约 1 小时有效） | 预算金额与花费 |
+| Google Gemini（Cloud 账单） | Cloud Billing Budget API `GET …/budgets`：Base URL 需补全为 `…/v1/billingAccounts/{账单ID}`。支持**浏览器 OAuth 一键授权**（点击表单「通过 Google 浏览器授权」，自动填充 Access Token + Refresh Token，每次检查自动续期）；旧方式仍兼容：仅填 `gcloud auth print-access-token`（约 1 小时有效） | 预算金额与花费 |
 | xAI / Grok | `GET /v1/billing/teams/{team_id}/prepaid/balance`（Management API Key；组织级 Key 需在「附加参数」填 `team_id`） | 预付余额与变动记录 |
 | Mistral | 官方账单接口 `GET /v1/billing/subscription` + `GET /v1/billing/usage?start_date=…&end_date=…`（API Key 需具备账单/Billing 权限） | 账户 Credits 余额、月度预算、套餐与本月花费（EUR；账单明细按日聚合） |
 | Qoder（国际站） | 官方 OpenAPI：PAT 兑换 Job Token 后 `GET /api/v2/quota/usage`（qoder.com → Settings → Personal Access Tokens） | 剩余 Credits、总配额、已用、赠额、当前套餐与到期时间（组织 Key 可展示组织资源包） |
@@ -82,12 +84,14 @@
 | ZenMux | 官方 Management API：`GET /api/v1/management/subscription/detail` + `GET /api/v1/management/payg/balance`（平台 Management API Key，非 PAYG/订阅 Key） | PAYG 余额、订阅套餐、5 小时/7 天窗口额度与每月上限 |
 
 > 另有 3 个已移除 / 已合并的旧入口（`BAILIAN`「阿里百炼·模型配额」、`BAILIAN_BILLING`、`QWEN_ACCOUNT`）仅为兼容早期配置文件而保留枚举值，界面不再展示；其中 `BAILIAN` 已移除的原因是：官方 `GET /api/v1/models/limits` 只返回模型限流配额（RPM/TPM），而模型 API Key 无法查询余额，账户余额必须用阿里云 AccessKey 走 BSS OpenAPI（即「账户余额与账单」入口），免费额度与用量统计则只有百炼 CLI / 控制台可见。旧配置启动时会自动迁移到「阿里云百炼·账户余额与账单」，迁移后需补填 AccessKey Secret。
+>
+> **Kimi Coding 套餐**入口已过时（官方订阅 Key 创建入口已下线，余额已由 Kimi 月之暗面入口的 `GET /v1/users/me/balance` 覆盖），但为兼容旧配置文件的反序列化而保留枚举值；在选型弹窗中置灰不可新增，并给出明确提示。
 
 > **计费形态选择**：同一厂商同时存在「按量付费」与「订阅套餐」两种计费且 Key 相互独立时（GLM、MiniMax、小米、云知声），添加/编辑账户表单提供「计费形式」下拉（按量付费 / 订阅套餐 / 自动识别），默认**自动识别**（先查套餐接口，接口明确拒绝或无法解析时自动降级为按量校验）；其余单一计费厂商固定标注其计费形式。卡片右上角显示当前账户的计费形态标签。
 > **MiniMax 常见问题**：若之前卡片报「非 Token Plan 订阅 Key」，多为**按量付费 Key** 被当作订阅 Key 使用——旧版只按 HTTP 状态码判断（该接口恒 200），已修复为识别 `base_resp.status_code`，自动识别模式下按量 Key 会正确显示「按量 Key 有效（钱包余额无公开 API，请到控制台查看）」。
 
 > 说明：OpenAI / Claude / Gemini 官方未向普通 API Key 开放「余额」接口，工具以官方**配额/用量**数据尽力呈现，并在卡片中明确标注口径。**「套餐查询」的实现方式**（参考 CodexBar、coding-usage-bar、pi-usage、dsh-quota-panel、opencode-quota-usage、VS Code 插件与官方文档）分三类：
-> 1. **官方 API Key 直调**（工具已全部接入）：GLM Coding Plan（`open.bigmodel.cn` / 国际 `api.z.ai`）、MiniMax Token Plan（`api.minimaxi.com` / 国际 `api.minimax.io`）、Kimi Coding（`api.kimi.com` / 海外 `api.kimi.ai`）、阿里百炼模型配额（需业务空间 Base URL）；
+> 1. **官方 API Key 直调**（工具已全部接入）：GLM Coding Plan（`open.bigmodel.cn` / 国际 `api.z.ai`）、MiniMax Token Plan（`api.minimaxi.com` / 国际 `api.minimax.io`）、Kimi Coding（`api.kimi.com` / 海外 `api.kimi.ai`，入口已过时）、阿里百炼模型配额（需业务空间 Base URL）；
 > 2. **浏览器 Cookie / OAuth 登录态**（桌面工具不接入）：ChatGPT Codex、Claude Pro/Max、GitHub Copilot（copilot-spend 用 gh OAuth token 调 `api.githubcopilot.com`）；通义百炼 Coding Plan 的 `bl usage free/coding-plan` 命令（底层走登录态，无公开 API Key 直调接口，未接入）；
 > 3. **阿里云 OpenAPI 签名**（工具已接入）：百炼 Token Plan 的 Credits 剩余额度走 `modelstudio.cn-beijing.aliyuncs.com` OpenAPI（ACS3-HMAC-SHA256，AccessKey 签名，官方文档提供可验证签名示例）；
 > 3. **本地文件解析**：Codex 的 `~/.codex` JSONL 会话 `payload.rate_limits`、Claude Code 状态行 JSON（coding-usage-bar 的做法）。
@@ -159,12 +163,13 @@ ai-balance-monitor/
 ├── build.gradle / settings.gradle   构建脚本（Java 17 toolchain、JavaFX 插件、buildDist 任务）
 ├── gradlew / gradlew.bat            Gradle Wrapper（声明 Gradle 8.10.2，无需本机预装 Gradle）
 ├── gradle/wrapper/                  Wrapper jar 与 distributionUrl 配置
-├── docs/                            README 配图（暗色 / 亮色空状态截图）
+├── docs/                            README 配图 + 余额查询支持调研报告（余额查询支持调研.md）
 ├── .gitignore                        排除构建产物（build/dist/*.zip）、开发截图与本地配置
 └── src/
     ├── main/java/com/aibalance
     │   ├── model/       ProviderId、AccountConfig、BalanceSnapshot（不可变快照）
     │   ├── provider/    BalanceProvider 接口 + 各服务实现 + ProviderRegistry 注册表
+    │   ├── auth/        GeminiOAuth（Google 浏览器 OAuth 授权 + 令牌刷新）
     │   ├── service/     HttpSupport（Conscrypt/OkHttp、连接池、超时）、ConfigStore（本地配置）、KeyProtector（DPAPI）、BalanceMonitor（并行调度）
     │   └── ui/          MainView 仪表盘、AccountCard、FloatingBallView 悬浮球、SettingsDialog、TrayManager、AppLauncher
     ├── main/resources/com/aibalance/ui/
@@ -172,7 +177,7 @@ ai-balance-monitor/
     │   ├── theme-light.css  亮色主题（覆盖同名令牌）
     │   ├── logos/           各厂商官方 logo（离线打包）
     │   └── fonts/           Geist 字体（离线打包）
-    └── test/java            各 Provider 解析器、配置存储、签名算法与安全加固（HTTPS 拒绝 / DPAPI 往返）的单元测试（162 项）
+    └── test/java            各 Provider 解析器、配置存储、签名算法、OAuth 令牌解析与安全加固（HTTPS 拒绝 / DPAPI 往返）的单元测试（175 项）
 ```
 
 **自包含发行版结构**（`gradle buildDist` 产出，解压即用）：
@@ -228,7 +233,7 @@ ai-balance-monitor/
 余额查询仅调用官方轻量查询接口（如 `/user/balance`、`/v1/models`），不调用对话模型，不产生计费消耗。
 
 **Q：Token 计划（套餐）剩余额度怎么看？**
-智谱 GLM 显示 Coding Plan 5 小时/周窗口剩余百分比、套餐档位与重置时间；MiniMax 显示 Token Plan 5 小时/周窗口剩余百分比与重置时间；Kimi Coding 套餐显示 5 小时速率窗口与周请求池已用/剩余；阿里云百炼 Token Plan 显示各席位/共享包 Credits 剩余进度条；OpenRouter 账户显示 Key 额度上限/已用与 Credits 可用余额；OpenAI Admin Key 入口显示近 30 天组织级费用与用量；Claude 显示响应头配额。ChatGPT Codex、Claude 订阅、GitHub Copilot、通义百炼 Coding Plan 等依赖登录态 Cookie/OAuth 的套餐未接入，避免展示不实数据。
+智谱 GLM 显示 Coding Plan 5 小时/周窗口剩余百分比、套餐档位与重置时间；MiniMax 显示 Token Plan 5 小时/周窗口剩余百分比与重置时间；Kimi Coding 套餐（入口已过时）显示 5 小时速率窗口与周请求池已用/剩余；阿里云百炼 Token Plan 显示各席位/共享包 Credits 剩余进度条；OpenRouter 账户显示 Key 额度上限/已用与 Credits 可用余额；OpenAI Admin Key 入口显示近 30 天组织级费用与用量；Claude 显示响应头配额。ChatGPT Codex、Claude 订阅、GitHub Copilot、通义百炼 Coding Plan 等依赖登录态 Cookie/OAuth 的套餐未接入，避免展示不实数据。
 
 ## 免责声明
 

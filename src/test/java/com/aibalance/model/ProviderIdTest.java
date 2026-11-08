@@ -120,8 +120,12 @@ class ProviderIdTest {
     void xaiAndGeminiBillingHaveClearPrompts() {
         assertTrue(ProviderId.XAI.getKeyPrompt().contains("console.x.ai"));
         assertTrue(ProviderId.XAI.getKeyPrompt().contains("不是模型调用 Key"));
-        assertEquals("OAuth 令牌", ProviderId.GEMINI_BILLING.getKeyFieldLabel());
+        assertEquals("Access Token", ProviderId.GEMINI_BILLING.getKeyFieldLabel());
+        assertTrue(ProviderId.GEMINI_BILLING.getKeyPrompt().contains("通过 Google 浏览器授权"));
         assertTrue(ProviderId.GEMINI_BILLING.getKeyPrompt().contains("gcloud auth print-access-token"));
+        assertEquals("Refresh Token", ProviderId.GEMINI_BILLING.getSecretFieldLabel());
+        assertTrue(ProviderId.GEMINI_BILLING.getSecretPrompt().contains("刷新令牌"));
+        assertTrue(ProviderId.GEMINI_BILLING.getSecretPrompt().contains("自动续期"));
     }
 
     @Test

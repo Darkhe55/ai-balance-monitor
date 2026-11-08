@@ -1,5 +1,6 @@
 package com.aibalance.provider;
 
+import com.aibalance.auth.GeminiOAuth;
 import com.aibalance.model.AccountConfig;
 import com.aibalance.model.BalanceSnapshot;
 import com.aibalance.model.ProviderCapability;
@@ -12,11 +13,14 @@ import java.util.Map;
 /**
  * Google Gemini（Cloud 账单）：Google Cloud Billing Budget API。
  * <p>
- * 接入方式（用户需自行准备）：
+ * 接入方式（推荐浏览器 OAuth）：
  * <ul>
  *   <li>Base URL 补全为 billingAccounts/{账单ID}，例如
  *       https://billingbudgets.googleapis.com/v1/billingAccounts/0123-4567-8901</li>
- *   <li>API Key 字段填写 OAuth 访问令牌（gcloud auth print-access-token），以 Bearer 认证</li>
+ *   <li>在设置表单点击「通过 Google 浏览器授权」，自动填充 Access Token 与 Refresh Token：
+ *       访问令牌即时有效，刷新令牌由本 Provider 每次检查前自动兑换新令牌续期。</li>
+ *   <li>旧方式仍兼容：只填 Access Token（gcloud auth print-access-token 生成，约 1 小时有效）也能用，
+ *       但不会自动续期。</li>
  * </ul>
  * 请求：GET {base}/budgets，官方响应字段（已核实官方文档）：
  * budgets[].amount.specifiedAmount（预算上限，units/nanos/currencyCode）、
@@ -26,12 +30,24 @@ import java.util.Map;
  */
 public final class GeminiBillingProvider implements BalanceProvider {
 
+    /** 令牌刷新函数（可注入以便测试）。 */
+    @FunctionalInterface
+    interface TokenRefresher {
+        String refresh(String refreshToken, String clientId, String clientSecret) throws Exception;
+    }
+
     private static final String DEFAULT_BASE = "https://billingbudgets.googleapis.com/v1";
 
     private final HttpSupport http;
+    private final TokenRefresher refresher;
 
     public GeminiBillingProvider(HttpSupport http) {
+        this(http, null);
+    }
+
+    GeminiBillingProvider(HttpSupport http, TokenRefresher refresher) {
         this.http = http;
+        this.refresher = refresher;
     }
 
     /** Base URL 归一化：去尾斜杠，空值回退官方默认。 */
@@ -49,14 +65,30 @@ public final class GeminiBillingProvider implements BalanceProvider {
     @Override
     public BalanceSnapshot check(AccountConfig config) {
         ProviderId pid = ProviderId.GEMINI_BILLING;
-        if (!config.hasValidKey()) {
+        boolean hasRefresh = config.getSecret() != null && !config.getSecret().isBlank();
+        if (!config.hasValidKey() && !hasRefresh) {
             return BalanceSnapshot.of(pid, config.getId(), config.getName(),
-                    BalanceSnapshot.Status.NOT_CONFIGURED).message("尚未填写 OAuth 访问令牌").build();
+                    BalanceSnapshot.Status.NOT_CONFIGURED)
+                    .message("尚未填写 OAuth 访问令牌（可点击「通过 Google 浏览器授权」）").build();
         }
         String base = normalize(config.getBaseUrl());
+        String accessToken;
+        try {
+            accessToken = resolveAccessToken(config.getApiKey(), config.getSecret(),
+                    refresherOrDefault(), clientIdFrom(config), clientSecretFrom(config));
+        } catch (Exception e) {
+            return BalanceSnapshot.of(pid, config.getId(), config.getName(),
+                    BalanceSnapshot.Status.UNAUTHORIZED)
+                    .message("OAuth 令牌刷新失败，请重新通过浏览器授权: " + e.getMessage()).build();
+        }
+        if (accessToken == null || accessToken.isBlank()) {
+            return BalanceSnapshot.of(pid, config.getId(), config.getName(),
+                    BalanceSnapshot.Status.UNAUTHORIZED)
+                    .message("OAuth 访问令牌为空，请重新授权").build();
+        }
         try {
             HttpSupport.Response resp = http.get(base + "/budgets",
-                    Map.of("Authorization", "Bearer " + config.getApiKey().strip(),
+                    Map.of("Authorization", "Bearer " + accessToken,
                             "Accept", "application/json"));
             HttpSupport.logDiagnostic("gemini-billing url=" + base + "/budgets status=" + resp.status()
                     + " body=" + truncate(resp.body()));
@@ -90,6 +122,37 @@ public final class GeminiBillingProvider implements BalanceProvider {
                             BalanceSnapshot.Status.ERROR)
                     .message("解析失败: " + e.getClass().getSimpleName()).build();
         }
+    }
+
+    /**
+     * 解析本次请求使用的访问令牌：
+     * 账户配置了刷新令牌时，先调用刷新函数换取新访问令牌（自动续期）；
+     * 否则直接使用配置中的访问令牌（旧 gcloud 手动令牌方式）。
+     */
+    static String resolveAccessToken(String apiKey, String refreshToken, TokenRefresher refresher,
+                                     String clientId, String clientSecret) throws Exception {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            return refresher.refresh(refreshToken, clientId, clientSecret);
+        }
+        return apiKey == null ? "" : apiKey.strip();
+    }
+
+    private TokenRefresher refresherOrDefault() {
+        return refresher != null ? refresher
+                : (refreshToken, clientId, clientSecret) ->
+                        GeminiOAuth.refresh(http, refreshToken, clientId, clientSecret).accessToken();
+    }
+
+    /** 从账户附加参数读取自定义 OAuth Client ID（未填则用内置占位值）。 */
+    static String clientIdFrom(AccountConfig config) {
+        String v = config.parseExtraParams().get("client_id");
+        return (v == null || v.isBlank()) ? GeminiOAuth.CLIENT_ID : v;
+    }
+
+    /** 从账户附加参数读取自定义 OAuth Client Secret（未填则用内置占位值）。 */
+    static String clientSecretFrom(AccountConfig config) {
+        String v = config.parseExtraParams().get("client_secret");
+        return (v == null || v.isBlank()) ? GeminiOAuth.CLIENT_SECRET : v;
     }
 
     /** 解析 budgets 列表（可独立测试）。 */

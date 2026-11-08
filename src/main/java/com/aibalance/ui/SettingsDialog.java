@@ -1,13 +1,16 @@
 package com.aibalance.ui;
 
+import com.aibalance.auth.GeminiOAuth;
 import com.aibalance.model.AccountConfig;
 import com.aibalance.model.BillingMode;
 import com.aibalance.model.ProviderId;
+import com.aibalance.service.HttpSupport;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -172,6 +175,23 @@ final class SettingsDialog {
         grid.add(lSecret, 0, row);
         grid.add(secretBox, 1, row++);
 
+        // Gemini Cloud 账单专用：浏览器 OAuth 一键授权（自动填充 Access Token + Refresh Token）
+        Label lOauth = new Label("OAuth 授权");
+        lOauth.getStyleClass().add("form-label");
+        f.oauthButton.getStyleClass().add("button-primary");
+        f.oauthButton.setMaxWidth(Double.MAX_VALUE);
+        f.oauthButton.setCursor(Cursor.HAND);
+        f.oauthButton.setTooltip(new Tooltip("打开 Google 授权页登录账号，自动填充访问令牌与刷新令牌。"
+                + "需先开通 Billing Budget API。自定义 Client 可在「附加参数」填 client_id=xxx; client_secret=xxx。"));
+        f.oauthButton.setOnAction(e -> f.startOAuth());
+        f.oauthLabel = lOauth;
+        f.oauthButton.setVisible(false);
+        f.oauthButton.setManaged(false);
+        lOauth.setVisible(false);
+        lOauth.setManaged(false);
+        grid.add(lOauth, 0, row);
+        grid.add(f.oauthButton, 1, row++);
+
         Label l4 = new Label("Base URL");
         l4.getStyleClass().add("form-label");
         f.baseUrl.setMaxWidth(Double.MAX_VALUE);
@@ -305,6 +325,8 @@ final class SettingsDialog {
         Label keyLabel;
         Label baseUrlLabel;
         int baseUrlRow;
+        Label oauthLabel;
+        final Button oauthButton = new Button("通过 Google 浏览器授权");
         ProviderId prevPid;
         final boolean editing;
         final String editId;
@@ -413,15 +435,25 @@ final class SettingsDialog {
                 stf.setPromptText(sp == null ? "" : sp);
             }
             boolean isQoder = pid == ProviderId.QODER_CN || pid == ProviderId.QODER_INTL;
-            boolean needExtra = pid == ProviderId.XAI;
+            boolean isGeminiBilling = pid == ProviderId.GEMINI_BILLING;
+            boolean needExtra = pid == ProviderId.XAI || isGeminiBilling;
             if (extraLabel != null && extraParams != null) {
                 extraLabel.setVisible(needExtra);
                 extraLabel.setManaged(needExtra);
                 extraParams.setVisible(needExtra);
                 extraParams.setManaged(needExtra);
-                if (needExtra) {
+                if (pid == ProviderId.XAI) {
                     extraParams.setPromptText("team_id=xxx");
+                } else if (isGeminiBilling) {
+                    extraParams.setPromptText("client_id=xxx; client_secret=xxx（可选，默认用内置占位 Client）");
                 }
+            }
+            // Gemini Cloud 账单：显示浏览器 OAuth 一键授权按钮
+            if (oauthLabel != null && oauthButton != null) {
+                oauthLabel.setVisible(isGeminiBilling);
+                oauthLabel.setManaged(isGeminiBilling);
+                oauthButton.setVisible(isGeminiBilling);
+                oauthButton.setManaged(isGeminiBilling);
             }
             // Qoder 专用：显示 org_id 和 member_id 独立输入框
             boolean showQoderFields = isQoder;
@@ -523,8 +555,9 @@ final class SettingsDialog {
             if (keyText().isBlank()) {
                 return false;
             }
-            // 双凭证厂商（云签名接口）Secret 必填
-            if (pid != null && needsSecret(pid) && secretText().isBlank()) {
+            // 双凭证厂商（云签名接口）Secret 必填；Gemini 账单的 Refresh Token 可选（兼容仅手动令牌的旧配置）
+            if (pid != null && needsSecret(pid) && pid != ProviderId.GEMINI_BILLING
+                    && secretText().isBlank()) {
                 return false;
             }
             // 无官方默认域名的服务（网关/百炼）Base URL 必填；其余允许留空（使用默认）
@@ -588,7 +621,9 @@ final class SettingsDialog {
                     ? (extraParams.getText() == null ? "" : extraParams.getText().strip())
                     : (pid == ProviderId.QODER_CN || pid == ProviderId.QODER_INTL)
                         ? buildQoderExtraParams()
-                        : null);
+                        : (pid == ProviderId.GEMINI_BILLING)
+                            ? (extraParams.getText() == null ? "" : extraParams.getText().strip())
+                            : null);
             return cfg;
         }
 
@@ -605,13 +640,74 @@ final class SettingsDialog {
             return sb.toString();
         }
 
+        /** 启动浏览器 OAuth 授权（后台线程，避免阻塞 UI），成功后填充令牌字段。 */
+        void startOAuth() {
+            oauthButton.setDisable(true);
+            oauthButton.setText("等待浏览器授权…");
+            String clientId = extraParam("client_id");
+            if (clientId == null || clientId.isBlank()) {
+                clientId = GeminiOAuth.CLIENT_ID;
+            }
+            String clientSecret = extraParam("client_secret");
+            if (clientSecret == null) {
+                clientSecret = GeminiOAuth.CLIENT_SECRET;
+            }
+            final String cid = clientId;
+            final String cs = clientSecret;
+            Thread t = new Thread(() -> {
+                try {
+                    HttpSupport http = new HttpSupport();
+                    GeminiOAuth.TokenResult result = GeminiOAuth.authorize(http, cid, cs);
+                    javafx.application.Platform.runLater(() -> {
+                        if (result.accessToken() != null) {
+                            pf.setText(result.accessToken());
+                            tf.setText(result.accessToken());
+                        }
+                        if (result.refreshToken() != null && !result.refreshToken().isBlank()) {
+                            spf.setText(result.refreshToken());
+                            stf.setText(result.refreshToken());
+                        }
+                        oauthButton.setDisable(false);
+                        oauthButton.setText("通过 Google 浏览器授权");
+                    });
+                } catch (Exception ex) {
+                    javafx.application.Platform.runLater(() -> {
+                        oauthButton.setDisable(false);
+                        oauthButton.setText("通过 Google 浏览器授权");
+                        Alert alert = new Alert(Alert.AlertType.ERROR,
+                                "OAuth 授权失败：" + ex.getMessage(), ButtonType.OK);
+                        alert.setTitle("OAuth 授权失败");
+                        alert.showAndWait();
+                    });
+                }
+            }, "gemini-oauth");
+            t.setDaemon(true);
+            t.start();
+        }
+
+        /** 从附加参数文本框解析指定 key 的值（支持 ; 与；分隔）。 */
+        private String extraParam(String key) {
+            String text = extraParams.getText();
+            if (text == null || text.isBlank()) {
+                return null;
+            }
+            for (String part : text.split("[;；]")) {
+                int eq = part.indexOf('=');
+                if (eq > 0 && part.substring(0, eq).trim().equalsIgnoreCase(key)) {
+                    return part.substring(eq + 1).trim();
+                }
+            }
+            return null;
+        }
+
         /** 需要双凭证（云签名接口）的厂商。 */
         @SuppressWarnings("deprecation") // 旧百炼入口枚举仅用于兼容旧配置迁移
         static boolean needsSecret(ProviderId pid) {
             return pid == ProviderId.BAILIAN_ACCOUNT || pid == ProviderId.BAILIAN_ACCOUNT_INTL
                     || pid == ProviderId.BAILIAN_BILLING
                     || pid == ProviderId.QWEN_ACCOUNT || pid == ProviderId.BAILIAN_TOKENPLAN
-                    || pid == ProviderId.VOLCENGINE || pid == ProviderId.TENCENT || pid == ProviderId.BAIDU;
+                    || pid == ProviderId.VOLCENGINE || pid == ProviderId.TENCENT || pid == ProviderId.BAIDU
+                    || pid == ProviderId.GEMINI_BILLING;
         }
 
         private AccountConfig findExisting() {

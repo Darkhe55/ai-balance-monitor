@@ -1,5 +1,7 @@
 package com.aibalance.provider;
 
+import com.aibalance.auth.GeminiOAuth;
+import com.aibalance.model.AccountConfig;
 import com.aibalance.model.BalanceSnapshot;
 import com.aibalance.model.ProviderCapability;
 import com.aibalance.model.ProviderId;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class GeminiBillingProviderTest {
 
@@ -63,5 +66,55 @@ class GeminiBillingProviderTest {
         assertEquals(BalanceSnapshot.Status.OK, snap.status());
         assertEquals(0.0, snap.primaryAmount(), 1e-9);
         assertEquals("预算数量", snap.primaryLabel());
+    }
+
+    @Test
+    void resolveAccessTokenUsesRefreshWhenPresent() throws Exception {
+        String token = GeminiBillingProvider.resolveAccessToken(
+                "old-access", "refresh-token",
+                (rt, cid, cs) -> {
+                    assertEquals("refresh-token", rt);
+                    return "new-access";
+                },
+                "cid", "cs");
+        assertEquals("new-access", token);
+    }
+
+    @Test
+    void resolveAccessTokenFallsBackToApiKey() throws Exception {
+        String token = GeminiBillingProvider.resolveAccessToken(
+                "manual-token", null,
+                (rt, cid, cs) -> {
+                    throw new AssertionError("不应调用刷新函数");
+                },
+                "cid", "cs");
+        assertEquals("manual-token", token);
+    }
+
+    @Test
+    void resolveAccessTokenBlankRefreshUsesApiKey() throws Exception {
+        String token = GeminiBillingProvider.resolveAccessToken(
+                "manual-token", "   ",
+                (rt, cid, cs) -> {
+                    throw new AssertionError("空白刷新令牌不应触发刷新");
+                },
+                "cid", "cs");
+        assertEquals("manual-token", token);
+    }
+
+    @Test
+    void clientIdFromExtraParamsOverridesDefault() {
+        AccountConfig cfg = new AccountConfig();
+        cfg.setExtraParams("client_id=my-cid; client_secret=my-secret");
+        assertEquals("my-cid", GeminiBillingProvider.clientIdFrom(cfg));
+        assertEquals("my-secret", GeminiBillingProvider.clientSecretFrom(cfg));
+    }
+
+    @Test
+    void clientIdFromFallsBackToDefaultWhenAbsent() {
+        AccountConfig cfg = new AccountConfig();
+        cfg.setExtraParams("");
+        assertEquals(GeminiOAuth.CLIENT_ID, GeminiBillingProvider.clientIdFrom(cfg));
+        assertEquals(GeminiOAuth.CLIENT_SECRET, GeminiBillingProvider.clientSecretFrom(cfg));
     }
 }

@@ -18,7 +18,10 @@ import java.util.Map;
  *   limits[]        → 5 小时（300 分钟）滚动速率窗口，limit/used/remaining（字符串或数字）
  *   顶层 usage      → 每周请求池，limit/used/remaining
  * 说明：订阅 Key 与按量付费 Key 不同；会员月度额度（Kimi 会员权益）为另一套登录态体系。
+ *
+ * 说明：该入口已过时（Kimi Coding 订阅 Key 创建入口已下线），保留实现仅兼容旧配置。
  */
+@SuppressWarnings("deprecation")
 public final class KimiCodingProvider implements BalanceProvider {
 
     /** 国内默认 API 根地址（Kimi Code） */
