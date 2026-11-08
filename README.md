@@ -12,9 +12,9 @@
 
 - **一键接入主流 AI 服务（共 29 个入口）**：
   - **国内**：DeepSeek、Kimi 月之暗面（中国区）、硅基流动 SiliconFlow（官方余额接口已下线）、智谱 GLM、MiniMax 海螺（中国站）、Kimi Coding 套餐（已过时，Key 创建入口已下线）、阿里云百炼·Token Plan 额度、阿里云百炼·账户余额与账单（中国站）、火山方舟、腾讯混元、百度千帆、阶跃星辰 StepFun、小米 MiMo、云知声 Unisound、魔塔社区 ModelScope（魔粒余额）、Qoder（国内站）
-  - **海外**：Kimi（国际区）、MiniMax 海螺（国际站）、OpenAI（API Key / Admin Key）、Anthropic Claude、Google Gemini（API Key / Cloud 账单）、xAI Grok、Mistral、**Novita AI**、**fal.ai**、阿里云百炼·账户余额与账单（国际站）、Qoder（国际站）
-  - **中转站**：OneAPI / NewAPI 网关、OpenRouter、CommandCode、OpenCode 套餐（Go/Go Plus/Go Teams）、ToAPIs、ZenMux
-- **服务选型弹窗（图标网格）**：添加/编辑账户时点击「服务」打开弹窗，各厂商以**官方 logo 图标卡片**网格展示，按 **国内厂商 / 海外厂商 / 中转站** 分区布局，中转站（OneAPI、OpenRouter）置于最下方；logo 资源离线打包，深色/浅色主题均正常显示，无 logo 的服务自动回退品牌色徽标
+  - **海外**：Kimi（国际区）、MiniMax 海螺（国际站）、OpenAI（API Key / Admin Key）、Anthropic Claude、Google Gemini（API Key / Cloud 账单）、xAI Grok、Mistral、阿里云百炼·账户余额与账单（国际站）、Qoder（国际站）
+  - **第三方**：OneAPI / NewAPI 网关、OpenRouter、CommandCode、OpenCode 套餐（Go/Go Plus/Go Teams）、ToAPIs、ZenMux、Novita AI、fal.ai
+- **服务选型弹窗（图标网格）**：添加/编辑账户时点击「服务」打开弹窗，各厂商以**官方 logo 图标卡片**网格展示，按 **国内厂商 / 海外厂商 / 第三方** 分区布局，第三方（托管平台 / 网关）置于最下方；logo 资源离线打包，深色/浅色主题均正常显示，无 logo 的服务自动回退品牌色徽标
 - **实时刷新**：自动刷新（15 秒 / 30 秒 / 60 秒 / 5 分钟可调）或手动刷新；所有账户**并行查询、互不阻塞**
 - **每账户独立状态**：在线 / Key 无效 / 请求超时 / 查询失败 / 未配置，单点失败不影响其他卡片
 - **Token 计划（套餐）额度**：智谱 GLM Coding Plan、MiniMax Token Plan 的 5 小时/周窗口额度（Kimi Coding 套餐入口已过时）；阿里云百炼 Token Plan 的 Credits 剩余额度；OpenRouter Key 配额（limit/usage）与账户 Credits；OpenAI Admin Key 的组织级费用与用量；Claude 响应头速率配额
@@ -33,7 +33,7 @@
 
 ## 支持的 AI 服务与数据口径
 
-> 主流官方平台 / 第三方中转站的余额查询支持情况调研，见 **[docs/余额查询支持调研.md](docs/余额查询支持调研.md)**（已加入支持 / 确认无法支持 / 等待开发三分类）。
+> 主流官方平台 / 第三方托管平台与网关的余额查询支持情况调研，见 **[docs/余额查询支持调研.md](docs/余额查询支持调研.md)**（已加入支持 / 确认无法支持 / 等待开发三分类）。
 
 ### 国内厂商
 
@@ -69,21 +69,21 @@
 | Google Gemini（Cloud 账单） | Cloud Billing Budget API `GET …/budgets`：Base URL 需补全为 `…/v1/billingAccounts/{账单ID}`。支持**浏览器 OAuth 一键授权**（点击表单「通过 Google 浏览器授权」，自动填充 Access Token + Refresh Token，每次检查自动续期）；旧方式仍兼容：仅填 `gcloud auth print-access-token`（约 1 小时有效） | 预算金额与花费 |
 | xAI / Grok | `GET /v1/billing/teams/{team_id}/prepaid/balance`（Management API Key；组织级 Key 需在「附加参数」填 `team_id`） | 预付余额与变动记录 |
 | Mistral | 官方账单接口 `GET /v1/billing/subscription` + `GET /v1/billing/usage?start_date=…&end_date=…`（API Key 需具备账单/Billing 权限） | 账户 Credits 余额、月度预算、套餐与本月花费（EUR；账单明细按日聚合） |
-| Novita AI | 官方 `GET /openapi/v1/billing/balance/detail`（`Bearer` API Key；字段单位 1/10000 USD） | 可用余额（$）、充值余额、信用额度、待扣款项、未付账单 |
-| fal.ai | 官方账户账单 `GET /v1/account/billing?expand=credits`（`Authorization: Key`，需 READONLY/BILLING 权限 Key） | 当前可用余额与币种 |
 | Qoder（国际站） | 官方 OpenAPI：PAT 兑换 Job Token 后 `GET /api/v2/quota/usage`（qoder.com → Settings → Personal Access Tokens） | 剩余 Credits、总配额、已用、赠额、当前套餐与到期时间（组织 Key 可展示组织资源包） |
 | 阿里云百炼·账户余额与账单（国际站） | 同中国站接口（`QueryAccountBalance` + `QueryAccountBill`），国际站 endpoint `business.ap-southeast-1.aliyuncs.com`，填国际站 AccessKey ID/Secret；RAM 需 `AliyunFinanceConsoleReadOnlyAccess`。**国际站 AK 与国内站不通用**：用中国站 AK 调中国站接口会返回 `InvalidAccessKeyId.NotFound`（HTTP 404） | 账户余额、可用现金、信控额度 + 当月账单费用明细（币种随账号，如 USD） |
 
-### 中转站 / 网关
+### 第三方（托管平台 / 网关）
 
 | 服务入口 | 查询方式 | 展示内容 |
 | --- | --- | --- |
 | OneAPI / NewAPI 网关 | 自定义 Base URL + `GET /api/user/self` | 剩余配额（按 1 USD = 500000 估算）、已用配额、累计请求 |
-| OpenRouter 中转 | 官方 `GET /api/v1/key` + `GET /api/v1/credits` | Key 额度上限/已用（limit/usage）、账户 Credits 余额、速率限制 |
+| OpenRouter | 官方 `GET /api/v1/key` + `GET /api/v1/credits` | Key 额度上限/已用（limit/usage）、账户 Credits 余额、速率限制 |
 | CommandCode | 官方 `GET /alpha/whoami` + `/alpha/billing/credits` + `/alpha/billing/subscriptions`（`orgId` 自动带参） | 月度剩余 Credits、已购/赠送、5 小时与每周用量窗口、订阅套餐与周期结束时间 |
 | OpenCode 套餐（Go / Go Plus / Go Teams） | 官方 `GET /zen/go/v1/usage`（三个档位共用同一用量窗口接口） | 5 小时/每周/每月套餐窗口剩余百分比与重置时间 |
 | ToAPIs | 官方 `GET /v1/balance`（令牌余额）+ `GET /v1/user/balance`（账户整体余额） | 剩余/已用余额、剩余/已用 Credits、每美元积分换算比例、账户整体余额（不限量自动标注） |
 | ZenMux | 官方 Management API：`GET /api/v1/management/subscription/detail` + `GET /api/v1/management/payg/balance`（平台 Management API Key，非 PAYG/订阅 Key） | PAYG 余额、订阅套餐、5 小时/7 天窗口额度与每月上限 |
+| Novita AI | 官方 `GET /openapi/v1/billing/balance/detail`（`Bearer` API Key；字段单位 1/10000 USD） | 可用余额（$）、充值余额、信用额度、待扣款项、未付账单 |
+| fal.ai | 官方账户账单 `GET /v1/account/billing?expand=credits`（`Authorization: Key`，需 READONLY/BILLING 权限 Key） | 当前可用余额与币种 |
 
 > 另有 3 个已移除 / 已合并的旧入口（`BAILIAN`「阿里百炼·模型配额」、`BAILIAN_BILLING`、`QWEN_ACCOUNT`）仅为兼容早期配置文件而保留枚举值，界面不再展示；其中 `BAILIAN` 已移除的原因是：官方 `GET /api/v1/models/limits` 只返回模型限流配额（RPM/TPM），而模型 API Key 无法查询余额，账户余额必须用阿里云 AccessKey 走 BSS OpenAPI（即「账户余额与账单」入口），免费额度与用量统计则只有百炼 CLI / 控制台可见。旧配置启动时会自动迁移到「阿里云百炼·账户余额与账单」，迁移后需补填 AccessKey Secret。
 >

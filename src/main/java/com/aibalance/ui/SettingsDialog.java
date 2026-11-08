@@ -104,7 +104,7 @@ final class SettingsDialog {
         f.providerButton.getStyleClass().add("provider-picker");
         f.providerButton.setMaxWidth(Double.MAX_VALUE);
         f.providerButton.setCursor(Cursor.HAND);
-        f.providerButton.setTooltip(new Tooltip("从图标网格中选择服务商（国内 / 海外 / 中转站）"));
+        f.providerButton.setTooltip(new Tooltip("从图标网格中选择服务商（国内 / 海外 / 第三方）"));
         f.providerButton.setOnAction(e -> {
             Optional<ProviderId> picked = ProviderPickerDialog.show(
                     f.providerButton.getScene().getWindow(), f.providerValue, light);

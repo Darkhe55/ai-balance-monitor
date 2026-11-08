@@ -174,21 +174,13 @@ public enum ProviderId {
             "填 Mistral API Key（console.mistral.ai → API Keys 创建）。工具调用官方账单接口返回账户 Credits 余额、月度预算与本月花费（EUR，账单接口需 API Key 具备账单/Billing 权限）。",
             "按量付费 · 官方 Credits 余额", "Mistral 账户", Region.OVERSEAS,
             BillingMode.PAY_AS_YOU_GO),
-    NOVITA("Novita AI", "#7C3AED", "https://api.novita.ai",
-            "填 Novita AI API Key（novita.ai 控制台 → API Keys 创建）。官方余额接口 GET /openapi/v1/billing/balance/detail 返回可用余额、充值余额、信用额度、待扣款项与未付账单（单位 1/10000 USD）。",
-            "按量付费 · 官方余额", "Novita AI 账户", Region.OVERSEAS,
-            BillingMode.PAY_AS_YOU_GO),
-    FAL("fal.ai", "#7B3FE4", "https://api.fal.ai",
-            "填 fal.ai API Key（fal.ai 控制台创建，需带 READONLY/BILLING 预置权限或含 billing:usage:read 权限）。官方账户账单接口 GET /v1/account/billing?expand=credits 返回当前可用余额与币种。",
-            "按量付费 · 官方余额", "fal.ai 账户", Region.OVERSEAS,
-            BillingMode.PAY_AS_YOU_GO),
 
-    // ===== 中转站 / 网关 =====
+    // ===== 第三方（托管平台 / 网关） =====
     ONEAPI("OneAPI / NewAPI 网关", "#F59E0B", "",
-            "填你的中转站令牌（OneAPI/NewAPI 管理后台 → 令牌 → 创建令牌）。查询剩余配额。无官方默认域名，Base URL 必填你的网关地址。",
-            "网关配额 · 剩余额度", "我的中转站", Region.GATEWAY,
+            "填你的网关令牌（OneAPI/NewAPI 管理后台 → 令牌 → 创建令牌）。查询剩余配额。无官方默认域名，Base URL 必填你的网关地址。",
+            "网关配额 · 剩余额度", "我的 API 网关", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO),
-    OPENROUTER("OpenRouter 中转", "#6466E9", "https://openrouter.ai/api",
+    OPENROUTER("OpenRouter", "#6466E9", "https://openrouter.ai/api",
             "填 OpenRouter API Key（openrouter.ai → Keys 创建）。显示官方 Key 配额（limit/usage）与账户 Credits 余额。",
             "按量付费 · Key 配额 + Credits", "OpenRouter 账户", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO),
@@ -214,13 +206,21 @@ public enum ProviderId {
     ZENMUX("ZenMux", "#F59E0B", "https://zenmux.ai",
             "填 ZenMux 平台 API Key（ZenMux 控制台 → 平台/管理 创建 Management API Key；PAYG Key 或订阅套餐 Key 无法查询额度）。默认地址 https://zenmux.ai。",
             "网关配额 · 剩余额度", "ZenMux", Region.GATEWAY,
+            BillingMode.PAY_AS_YOU_GO),
+    NOVITA("Novita AI", "#7C3AED", "https://api.novita.ai",
+            "填 Novita AI API Key（novita.ai 控制台 → API Keys 创建）。官方余额接口 GET /openapi/v1/billing/balance/detail 返回可用余额、充值余额、信用额度、待扣款项与未付账单（单位 1/10000 USD）。",
+            "按量付费 · 官方余额", "Novita AI 账户", Region.GATEWAY,
+            BillingMode.PAY_AS_YOU_GO),
+    FAL("fal.ai", "#7B3FE4", "https://api.fal.ai",
+            "填 fal.ai API Key（fal.ai 控制台创建，需带 READONLY/BILLING 预置权限或含 billing:usage:read 权限）。官方账户账单接口 GET /v1/account/billing?expand=credits 返回当前可用余额与币种。",
+            "按量付费 · 官方余额", "fal.ai 账户", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO);
 
-    /** 选型弹窗的分区：国内 / 海外 / 中转站。 */
+    /** 选型弹窗的分区：国内 / 海外 / 第三方。 */
     public enum Region {
         DOMESTIC("国内厂商"),
         OVERSEAS("海外厂商"),
-        GATEWAY("中转站");
+        GATEWAY("第三方");
 
         private final String label;
 
@@ -375,7 +375,7 @@ public enum ProviderId {
         };
     }
 
-    /** 选型弹窗分区（国内 / 海外 / 中转站）。 */
+    /** 选型弹窗分区（国内 / 海外 / 第三方）。 */
     public Region getRegion() {
         return region;
     }

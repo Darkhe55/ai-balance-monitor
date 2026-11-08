@@ -148,4 +148,18 @@ class ProviderIdTest {
         assertTrue(ProviderId.MODELSCOPE.getKeyPrompt().contains("ms-"));
         assertTrue(ProviderId.MODELSCOPE.getKeyPrompt().contains("访问令牌"));
     }
+
+    @Test
+    void thirdPartySectionGroupsHostingPlatformsAndGateways() {
+        // 分区名称：中转站 → 第三方
+        assertEquals("第三方", ProviderId.Region.GATEWAY.getLabel());
+        // 非官方模型厂商的托管平台与网关统一归入第三方分区
+        assertEquals(ProviderId.Region.GATEWAY, ProviderId.NOVITA.getRegion());
+        assertEquals(ProviderId.Region.GATEWAY, ProviderId.FAL.getRegion());
+        assertEquals(ProviderId.Region.GATEWAY, ProviderId.ONEAPI.getRegion());
+        assertEquals(ProviderId.Region.GATEWAY, ProviderId.OPENROUTER.getRegion());
+        // 官方模型厂商仍保留在海外分区
+        assertEquals(ProviderId.Region.OVERSEAS, ProviderId.OPENAI.getRegion());
+        assertEquals(ProviderId.Region.OVERSEAS, ProviderId.ANTHROPIC.getRegion());
+    }
 }

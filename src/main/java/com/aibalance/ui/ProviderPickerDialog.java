@@ -25,8 +25,8 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * 厂商选型弹窗：图标网格（官方 logo + 名称），按 国内 / 海外 / 中转站 分区展示，
- * 中转站置于最下方。选中后返回 ProviderId。
+ * 厂商选型弹窗：图标网格（官方 logo + 名称），按 国内 / 海外 / 第三方 分区展示，
+ * 第三方置于最下方。选中后返回 ProviderId。
  * <p>
  * 暂不支持新增的入口（GLM / Gemini / 小米 MiMo / 云知声）置灰不可点击，悬浮提示统一说明原因。
  */
@@ -81,7 +81,7 @@ final class ProviderPickerDialog {
         sections.getStyleClass().add("picker-sections");
 
         Map<ProviderId.Region, List<ProviderId>> byRegion = groupByRegion();
-        // 分区顺序：国内 → 海外 → 中转站（最下方）
+        // 分区顺序：国内 → 海外 → 第三方（最下方）
         ProviderId.Region[] order = {
                 ProviderId.Region.DOMESTIC, ProviderId.Region.OVERSEAS, ProviderId.Region.GATEWAY};
         for (ProviderId.Region region : order) {

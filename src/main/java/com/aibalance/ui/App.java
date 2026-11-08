@@ -404,7 +404,7 @@ public final class App extends Application {
                                 if (popupWin != null && popupWin.getScene() != null) {
                                     writePng(popupWin.getScene().snapshot(null), out);
                                     System.out.println("SNAPSHOT_POPUP_SAVED=" + out.getAbsolutePath());
-                                    // 临时拉高视口使全部分区（国内/海外/中转站）一次可见，再截一张
+                                    // 临时拉高视口使全部分区（国内/海外/第三方）一次可见，再截一张
                                     Node sc = popupWin.getScene().getRoot().lookup(".picker-scroll");
                                     if (sc instanceof javafx.scene.control.ScrollPane sp) {
                                         popupWin.setWidth(700);
