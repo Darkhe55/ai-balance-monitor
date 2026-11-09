@@ -436,7 +436,7 @@ final class SettingsDialog {
             }
             boolean isQoder = pid == ProviderId.QODER_CN || pid == ProviderId.QODER_INTL;
             boolean isGeminiBilling = pid == ProviderId.GEMINI_BILLING;
-            boolean needExtra = pid == ProviderId.XAI || isGeminiBilling;
+            boolean needExtra = pid == ProviderId.XAI || pid == ProviderId.FIREWORKS || isGeminiBilling;
             if (extraLabel != null && extraParams != null) {
                 extraLabel.setVisible(needExtra);
                 extraLabel.setManaged(needExtra);
@@ -444,6 +444,8 @@ final class SettingsDialog {
                 extraParams.setManaged(needExtra);
                 if (pid == ProviderId.XAI) {
                     extraParams.setPromptText("team_id=xxx");
+                } else if (pid == ProviderId.FIREWORKS) {
+                    extraParams.setPromptText("account_id=xxx（Fireworks 账户 ID）");
                 } else if (isGeminiBilling) {
                     extraParams.setPromptText("client_id=xxx; client_secret=xxx（可选，默认用内置占位 Client）");
                 }

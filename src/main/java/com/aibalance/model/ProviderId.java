@@ -174,6 +174,10 @@ public enum ProviderId {
             "填 Mistral API Key（console.mistral.ai → API Keys 创建）。工具调用官方账单接口返回账户 Credits 余额、月度预算与本月花费（EUR，账单接口需 API Key 具备账单/Billing 权限）。",
             "按量付费 · 官方 Credits 余额", "Mistral 账户", Region.OVERSEAS,
             BillingMode.PAY_AS_YOU_GO),
+    FIREWORKS("Fireworks AI", "#F97316", "https://api.fireworks.ai",
+            "填 Fireworks AI API Key（app.fireworks.ai → Settings → API Keys 创建）。Fireworks 为按量后付费、无余额接口，本入口查询本月费用与用量。须在「附加参数」填 account_id=xxx（console.fireworks.ai 账户页，或 GET /v1/accounts?readMask=name 后取 accounts/ 后的部分）。官方接口 GET /v1/accounts/{id}/billing/summary 与 /billingUsage。",
+            "按量付费 · 费用+用量", "Fireworks 账户", Region.OVERSEAS,
+            BillingMode.PAY_AS_YOU_GO),
 
     // ===== 第三方（托管平台 / 网关） =====
     ONEAPI("OneAPI / NewAPI 网关", "#F59E0B", "",
@@ -352,6 +356,8 @@ public enum ProviderId {
                     "访问令牌（可点击「通过 Google 浏览器授权」获取，或手动 gcloud auth print-access-token）";
             case XAI ->
                     "（console.x.ai → Billing → API Keys 创建，注意不是模型调用 Key）";
+            case FIREWORKS ->
+                    "（app.fireworks.ai → Settings → API Keys 创建，须在「附加参数」填 account_id=xxx）";
             case ZENMUX ->
                     "（ZenMux 控制台 → 平台/管理 创建 Management API Key，不是 PAYG Key 或订阅 Key）";
             case COMMANDCODE ->
@@ -455,6 +461,8 @@ public enum ProviderId {
             case XAI -> ProviderCapability.set(ProviderCapability.BALANCE);
             case MISTRAL -> ProviderCapability.set(
                     ProviderCapability.BALANCE, ProviderCapability.COST, ProviderCapability.SPEND_LIMIT);
+            case FIREWORKS -> ProviderCapability.set(
+                    ProviderCapability.COST, ProviderCapability.USAGE);
             case NOVITA, FAL, HYPERBOLIC, VAST -> ProviderCapability.set(ProviderCapability.BALANCE);
             case GLM -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
             case MINIMAX -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
