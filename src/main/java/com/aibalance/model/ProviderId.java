@@ -214,6 +214,14 @@ public enum ProviderId {
     FAL("fal.ai", "#7B3FE4", "https://api.fal.ai",
             "填 fal.ai API Key（fal.ai 控制台创建，需带 READONLY/BILLING 预置权限或含 billing:usage:read 权限）。官方账户账单接口 GET /v1/account/billing?expand=credits 返回当前可用余额与币种。",
             "按量付费 · 官方余额", "fal.ai 账户", Region.GATEWAY,
+            BillingMode.PAY_AS_YOU_GO),
+    HYPERBOLIC("Hyperbolic", "#6366F1", "https://api.hyperbolic.xyz",
+            "填 Hyperbolic API Key（hyperbolic.xyz 控制台 → API Keys 创建）。官方余额接口 GET /v2/customer/balance 返回账户信用余额（单位美分，÷100 = USD）与最大透支额度。",
+            "按量付费 · 官方余额", "Hyperbolic 账户", Region.GATEWAY,
+            BillingMode.PAY_AS_YOU_GO),
+    VAST("Vast.ai", "#2563EB", "https://console.vast.ai",
+            "填 Vast.ai API Key（console.vast.ai → Keys 页面创建，建议使用仅含 user_read 权限的 scoped key）。官方接口 GET /api/v0/users/current/ 返回账户信用余额（USD）、邮箱与用户 ID。",
+            "预付费 · 官方余额", "Vast.ai 账户", Region.GATEWAY,
             BillingMode.PAY_AS_YOU_GO);
 
     /** 选型弹窗的分区：国内 / 海外 / 第三方。 */
@@ -354,6 +362,10 @@ public enum ProviderId {
                     "（novita.ai 控制台 → API Keys 创建，Bearer 认证）";
             case FAL ->
                     "（fal.ai 控制台创建带 READONLY/BILLING 权限的 API Key）";
+            case HYPERBOLIC ->
+                    "（hyperbolic.xyz 控制台 → API Keys 创建，Bearer 认证）";
+            case VAST ->
+                    "（console.vast.ai → Keys 页面创建，建议 scoped key 仅含 user_read 权限）";
             default -> "sk-…（仅保存在本机）";
         };
     }
@@ -443,7 +455,7 @@ public enum ProviderId {
             case XAI -> ProviderCapability.set(ProviderCapability.BALANCE);
             case MISTRAL -> ProviderCapability.set(
                     ProviderCapability.BALANCE, ProviderCapability.COST, ProviderCapability.SPEND_LIMIT);
-            case NOVITA, FAL -> ProviderCapability.set(ProviderCapability.BALANCE);
+            case NOVITA, FAL, HYPERBOLIC, VAST -> ProviderCapability.set(ProviderCapability.BALANCE);
             case GLM -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
             case MINIMAX -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);
             case MINIMAX_INTL -> ProviderCapability.set(ProviderCapability.USAGE, ProviderCapability.QUOTA);

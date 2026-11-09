@@ -53,6 +53,8 @@ public final class ProviderRegistry {
         providers.put(ProviderId.MISTRAL, new MistralProvider(http, ProviderId.MISTRAL));
         providers.put(ProviderId.NOVITA, new NovitaProvider(http));
         providers.put(ProviderId.FAL, new FalProvider(http));
+        providers.put(ProviderId.HYPERBOLIC, new HyperbolicProvider(http));
+        providers.put(ProviderId.VAST, new VastProvider(http));
         providers.put(ProviderId.OPENCODE_GO, new OpenCodeGoProvider(http, ProviderId.OPENCODE_GO));
         providers.put(ProviderId.COMMANDCODE, new CommandCodeProvider(http, ProviderId.COMMANDCODE));
         providers.put(ProviderId.TOAPIS, new ToApisProvider(http, ProviderId.TOAPIS));
