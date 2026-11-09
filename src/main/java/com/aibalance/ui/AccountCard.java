@@ -480,8 +480,15 @@ public final class AccountCard extends VBox {
         quotaRatio.set(ratio);
         quotaTrack.setVisible(true);
         quotaTrack.setManaged(true);
+        // 主进度条悬停文本带上快照的主标签与说明（如"5 小时窗口剩余"），
+        // 避免只写"额度/剩余"让用户误以为代表总额度
+        String tipLabel = snap.primaryLabel();
+        String tipMsg = snap.message();
+        String tip = (tipLabel == null || tipLabel.isBlank())
+                ? (tipMsg == null || tipMsg.isBlank() ? "剩余额度" : tipMsg)
+                : (tipMsg == null || tipMsg.isBlank() ? tipLabel : tipLabel + "，" + tipMsg);
         javafx.scene.control.Tooltip.install(quotaTrack,
-                new javafx.scene.control.Tooltip(String.format("剩余额度 %.0f%%", pct)));
+                new javafx.scene.control.Tooltip(String.format("%s %.0f%%", tip, pct)));
         boolean exhausted = pct <= 0.5;
         quotaTrack.getStyleClass().remove("quota-track-empty");
         quotaFill.getStyleClass().remove("quota-fill-empty");

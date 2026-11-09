@@ -301,8 +301,10 @@ public final class MiniMaxProvider implements BalanceProvider {
         BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName)
                 .label("Token Plan 额度").currency("%");
         if (used5h != null) {
-            // 5 小时窗口已作为主进度条（percent）与顶部金额展示，不再重复写入说明/明细；
+            // 5 小时窗口是主进度条与顶部金额的来源；标签明确为「5 小时窗口剩余」，
+            // 避免用户误以为是套餐总额度。5 小时窗口内容不再重复写入说明/明细，
             // 仅保留其重置时间这一额外信息
+            builder.label("5 小时窗口剩余");
             builder.amount(100.0 - used5h);
             builder.percent(100.0 - used5h);
             if (endTime != null && !endTime.isBlank()) {

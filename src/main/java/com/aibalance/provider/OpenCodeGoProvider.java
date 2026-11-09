@@ -100,8 +100,9 @@ public final class OpenCodeGoProvider implements BalanceProvider {
                     BalanceSnapshot.Status.ERROR).message("响应中未找到有效套餐窗口").build();
         }
 
-        // 主展示：以最近窗口的剩余比例作为套餐剩余（顶部金额 + 大进度条）
-        builder.label("套餐剩余").currency("%").amount(primary.remainingPercent());
+        // 主展示：以最近窗口（5 小时滚动）的剩余比例作为大进度条与顶部金额。
+        // 标签明确为「5 小时窗口剩余」，避免用户误以为是套餐总额度
+        builder.label("5 小时窗口剩余").currency("%").amount(primary.remainingPercent());
         builder.percent(primary.remainingPercent());
 
         // 各窗口明细：最近窗口（5 小时）已作为主进度条展示，不再重复加入明细；
