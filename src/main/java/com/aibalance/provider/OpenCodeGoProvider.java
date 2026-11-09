@@ -100,14 +100,12 @@ public final class OpenCodeGoProvider implements BalanceProvider {
                     BalanceSnapshot.Status.ERROR).message("响应中未找到有效套餐窗口").build();
         }
 
-        // 主展示：以最近窗口的剩余比例作为套餐剩余
+        // 主展示：以最近窗口的剩余比例作为套餐剩余（顶部金额 + 大进度条）
         builder.label("套餐剩余").currency("%").amount(primary.remainingPercent());
         builder.percent(primary.remainingPercent());
-        builder.metric(ProviderCapability.QUOTA, "套餐剩余", primary.remainingPercent(), "%",
-                primary.remainingPercent(), "OpenCode " + primary.displayName);
 
-        // 各窗口明细：label 含「窗口」、值含「剩余 X%」，供主卡片与悬浮球面板统一提取
-        addWindowDetail(builder, rolling, "5小时窗口");
+        // 各窗口明细：最近窗口（5 小时）已作为主进度条展示，不再重复加入明细；
+        // 仅保留更长的周/月窗口（含各自重置时间），供文字明细与悬浮球提取
         addWindowDetail(builder, weekly, "每周窗口");
         addWindowDetail(builder, monthly, "每月窗口");
 

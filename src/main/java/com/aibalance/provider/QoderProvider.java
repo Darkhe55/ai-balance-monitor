@@ -140,7 +140,8 @@ public final class QoderProvider implements BalanceProvider {
             Double percent = (user.total != null && user.total > 0)
                     ? user.remaining / user.total * 100.0 : null;
             builder.percent(percent);
-            builder.metric(ProviderCapability.QUOTA, "剩余 Credits", user.remaining, unit, percent,
+            // 主进度条已展示剩余比例，metric 仅作文字形式的能力区块（不再重复渲染小进度条）
+            builder.metric(ProviderCapability.QUOTA, "剩余 Credits", user.remaining, unit, null,
                     orgMode ? "Qoder 组织资源包" : "Qoder 个人额度");
             if (user.total != null) {
                 builder.detail("总配额", String.format("%.2f %s", user.total, unit));

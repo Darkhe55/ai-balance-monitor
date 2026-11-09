@@ -168,7 +168,8 @@ public final class MainView extends BorderPane {
             String caption = s == null ? null : ballCaption(s);
             out.add(new FloatingBallView.BallRow(acc.getName(), pid.getDisplayName(),
                     pid.getBrandColor(), status, statusText, amountText, percent, caption,
-                    s == null ? java.util.List.of() : extractQuotaRows(s)));
+                    s == null ? java.util.List.of()
+                    : extractQuotaRows(s, acc.getDisplayEntries(), acc.getEntryModes())));
         }
         return out;
     }
@@ -176,15 +177,21 @@ public final class MainView extends BorderPane {
     /**
      * 从明细行提取多额度窗口（不同时间段套餐）：每个"窗口/模型"明细行对应一个配额行，
      * 同名"…重置"行作为下一次刷新时间（重置行可能出现在窗口行之后）。
+     * 遵守账户「展示条目」配置（displayEntries 过滤 + 排序）与展示形式（用户显式设为
+     * 文字形式的窗口/模型行不再进入悬浮球，保证与主卡片勾选一致）。
      */
-    static java.util.List<FloatingBallView.QuotaRow> extractQuotaRows(BalanceSnapshot s) {
+    static java.util.List<FloatingBallView.QuotaRow> extractQuotaRows(BalanceSnapshot s,
+                                                                      java.util.List<String> displayEntries,
+                                                                      java.util.Map<String, String> entryModes) {
         java.util.List<FloatingBallView.QuotaRow> out = new java.util.ArrayList<>();
         if (s == null || s.details() == null) {
             return out;
         }
+        // 先按「展示条目」配置过滤（与主卡片一致的可见明细）
+        List<BalanceSnapshot.DetailLine> details = AccountCard.filterDetails(s.details(), displayEntries);
         // 第一遍：收集 <name>重置 → 时间（name = label 去掉"重置"）
         java.util.Map<String, String> resets = new java.util.HashMap<>();
-        for (BalanceSnapshot.DetailLine d : s.details()) {
+        for (BalanceSnapshot.DetailLine d : details) {
             String lbl = d.label();
             String val = d.value();
             if (lbl == null || val == null || !lbl.endsWith("重置")) {
@@ -193,10 +200,14 @@ public final class MainView extends BorderPane {
             resets.put(lbl.substring(0, lbl.length() - 2), formatResetTime(val));
         }
         // 第二遍：窗口/模型行（排除"…重置"行），按 name 匹配重置
-        for (BalanceSnapshot.DetailLine d : s.details()) {
+        for (BalanceSnapshot.DetailLine d : details) {
             String lbl = d.label();
             String val = d.value();
             if (lbl == null || val == null || lbl.endsWith("重置")) {
+                continue;
+            }
+            // 用户显式把该条目设为「文字」形式 → 悬浮球不生成进度条窗口行
+            if (EntryFormat.MODE_TEXT.equals(EntryFormat.modeOf(entryModes, d.key()))) {
                 continue;
             }
             if (lbl.contains("窗口")) {
@@ -205,25 +216,12 @@ public final class MainView extends BorderPane {
                 if (reset == null) {
                     reset = resets.get(name + "窗口");
                 }
-                out.add(new FloatingBallView.QuotaRow(lbl, parseRemainPercent(val), reset));
+                out.add(new FloatingBallView.QuotaRow(lbl, EntryFormat.parseRemainPercent(val), reset));
             } else if (lbl.startsWith("模型")) {
-                out.add(new FloatingBallView.QuotaRow(lbl, parseRemainPercent(val), null));
+                out.add(new FloatingBallView.QuotaRow(lbl, EntryFormat.parseRemainPercent(val), null));
             }
         }
         return out;
-    }
-
-    /** 提取明细值中第一个"剩余 X%"的 X（窗口/模型行的剩余百分比）。 */
-    private static Double parseRemainPercent(String value) {
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("剩余\\s*([\\d.]+)\\s*%").matcher(value);
-        if (m.find()) {
-            try {
-                return Double.parseDouble(m.group(1));
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
     }
 
     /** 重置时间归一化为 HH:mm（epoch 毫秒 / ISO 时间 / 已格式化文本兼容）。 */

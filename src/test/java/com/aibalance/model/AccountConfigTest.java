@@ -26,4 +26,19 @@ class AccountConfigTest {
         acc.setDisplayEntries(null);
         assertNull(acc.getDisplayEntries());
     }
+
+    @Test
+    void entryModesRoundTrip() {
+        AccountConfig acc = new AccountConfig(ProviderId.OPENCODE_GO, "OpenCode", "sk-test", null);
+        assertNull(acc.getEntryModes());
+        assertNull(acc.entryMode("QUOTA|套餐剩余"));
+        java.util.Map<String, String> modes = new java.util.LinkedHashMap<>();
+        modes.put("detail|每周窗口", "BAR");
+        modes.put("detail|每月窗口", "TEXT");
+        acc.setEntryModes(modes);
+        assertEquals(modes, acc.getEntryModes());
+        assertEquals("BAR", acc.entryMode("detail|每周窗口"));
+        assertEquals("TEXT", acc.entryMode("detail|每月窗口"));
+        assertNull(acc.entryMode("detail|不存在"));
+    }
 }

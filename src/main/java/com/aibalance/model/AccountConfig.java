@@ -46,6 +46,9 @@ public final class AccountConfig {
     /** 卡片展示条目（有序的条目 key 列表，key = "能力名|标签"，如 "QUOTA|模型 gpt-4o 配额"）；
      *  null / 空 = 展示该账户最近快照的全部条目（顺序按快照返回）。 */
     private java.util.List<String> displayEntries;
+    /** 展示条目的形式配置：key（同 displayEntries 的 key）→ "BAR"（进度条）/ "TEXT"（文字）。
+     *  未在映射中的条目使用默认形式：带百分比的 metric 用进度条，其余用文字。 */
+    private java.util.Map<String, String> entryModes;
     private boolean enabled = true;
 
     public AccountConfig() {
@@ -155,6 +158,21 @@ public final class AccountConfig {
 
     public void setDisplayEntries(java.util.List<String> displayEntries) {
         this.displayEntries = displayEntries;
+    }
+
+    public java.util.Map<String, String> getEntryModes() {
+        return entryModes;
+    }
+
+    public void setEntryModes(java.util.Map<String, String> entryModes) {
+        this.entryModes = entryModes;
+    }
+
+    /**
+     * 指定条目 key 的展示形式：返回 "BAR" 或 "TEXT"；未配置时返回 null（按默认形式渲染）。
+     */
+    public String entryMode(String key) {
+        return entryModes == null ? null : entryModes.get(key);
     }
 
     /** 去除首尾空白后是否有效 */

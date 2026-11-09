@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ModelStudioTokenPlanProviderTest {
@@ -115,7 +116,8 @@ class ModelStudioTokenPlanProviderTest {
         assertEquals(BalanceSnapshot.Status.OK, snap.status());
         assertEquals(40.0, snap.primaryAmount(), 1e-9);
         assertEquals("Token Plan 剩余 Credits", snap.primaryLabel());
-        assertEquals(40.0, snap.percent(), 1e-9);
+        // 单权益时不再设聚合主进度条（避免与分项 metric 重复），主金额保留
+        assertNull(snap.percent());
         BalanceSnapshot.MetricBlock q = snap.metricOf(ProviderCapability.QUOTA);
         assertNotNull(q);
         assertEquals(40.0, q.amount(), 1e-9);

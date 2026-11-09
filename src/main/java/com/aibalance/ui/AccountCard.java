@@ -238,17 +238,22 @@ public final class AccountCard extends VBox {
             details = details.subList(0, 5);
         }
         for (BalanceSnapshot.DetailLine line : details) {
-            Label label = new Label(line.label());
-            label.getStyleClass().add("detail-label");
-            Label value = new Label(line.value());
-            value.getStyleClass().add("detail-value");
-            value.setMaxWidth(200);
-            value.setWrapText(true);
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-            HBox row = new HBox(8, label, spacer, value);
-            row.setAlignment(Pos.CENTER_LEFT);
-            detailsBox.getChildren().add(row);
+            // 用户为明细选择「进度条」且值含可解析的「剩余 X%」时，渲染为小进度条；否则文字行
+            if (EntryFormat.detailWantsBar(account.getEntryModes(), line.key(), line.value())) {
+                detailsBox.getChildren().add(buildDetailBarRow(line));
+            } else {
+                Label label = new Label(line.label());
+                label.getStyleClass().add("detail-label");
+                Label value = new Label(line.value());
+                value.getStyleClass().add("detail-value");
+                value.setMaxWidth(200);
+                value.setWrapText(true);
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                HBox row = new HBox(8, label, spacer, value);
+                row.setAlignment(Pos.CENTER_LEFT);
+                detailsBox.getChildren().add(row);
+            }
         }
         if (details.isEmpty()) {
             Label none = new Label("暂无明细");
@@ -303,7 +308,10 @@ public final class AccountCard extends VBox {
             head.setAlignment(Pos.CENTER_LEFT);
             block.getChildren().add(head);
 
-            if (m.percent() != null) {
+            // 按「展示形式」配置决定是否渲染进度条：用户显式选文字则不渲染；
+            // 未配置时带百分比的 metric 默认渲染进度条（兼容旧行为）
+            String mode = EntryFormat.modeOf(account.getEntryModes(), m.key());
+            if (m.percent() != null && !EntryFormat.MODE_TEXT.equals(mode)) {
                 HBox track = new HBox();
                 track.getStyleClass().add("quota-track");
                 track.setMinHeight(5);
@@ -335,6 +343,48 @@ public final class AccountCard extends VBox {
         }
         metricsBox.setVisible(true);
         metricsBox.setManaged(true);
+    }
+
+    /** 明细进度条行：标签 + 固定宽度小进度条 + 剩余百分比（完整值作为 tooltip）。 */
+    private HBox buildDetailBarRow(BalanceSnapshot.DetailLine line) {
+        Double pct = EntryFormat.parseRemainPercent(line.value());
+        Label label = new Label(line.label());
+        label.getStyleClass().add("detail-label");
+        label.setMaxWidth(150);
+        label.setWrapText(true);
+
+        HBox track = new HBox();
+        track.getStyleClass().add("quota-track");
+        track.setMinWidth(90);
+        track.setPrefWidth(90);
+        track.setMaxWidth(90);
+        track.setMinHeight(5);
+        track.setPrefHeight(5);
+        track.setMaxHeight(5);
+        if (pct != null) {
+            double ratio = Math.max(0, Math.min(100, pct)) / 100.0;
+            Region fill = new Region();
+            fill.getStyleClass().add("quota-fill");
+            fill.prefWidthProperty().bind(track.widthProperty().multiply(ratio));
+            if (pct <= 0.5) {
+                track.getStyleClass().add("quota-track-empty");
+                fill.getStyleClass().add("quota-fill-empty");
+            }
+            track.getChildren().add(fill);
+            javafx.scene.control.Tooltip.install(track,
+                    new javafx.scene.control.Tooltip(line.label() + " " + line.value()));
+        }
+
+        Label pctLabel = new Label(pct == null ? "" : String.format("%.0f%%", pct));
+        pctLabel.getStyleClass().add("detail-value");
+        pctLabel.setMinWidth(50);
+        pctLabel.setAlignment(Pos.CENTER_RIGHT);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox row = new HBox(8, label, spacer, track, pctLabel);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
     }
 
     private String formatMetric(BalanceSnapshot.MetricBlock m) {
@@ -505,15 +555,16 @@ public final class AccountCard extends VBox {
         menu.show(anchor, Side.BOTTOM, 0, 6);
     }
 
-    /** 「展示条目」：勾选要在卡片展示的具体数据条目（基于最近一次快照，每厂商条目自然不同）+ 调整顺序，
-     *  保存后立即持久化并重绘卡片。 */
+    /** 「展示条目」：勾选要在卡片展示的具体数据条目（基于最近一次快照，每厂商条目自然不同）+ 调整顺序
+     *  + 选择每条目的展示形式（进度条/文字），保存后立即持久化并重绘卡片。 */
     private void showEntriesDialog() {
         javafx.scene.Node anchor = this;
-        java.util.Optional<java.util.List<String>> result =
+        java.util.Optional<DisplayEntriesDialog.Result> result =
                 DisplayEntriesDialog.show(anchor.getScene() == null ? null : anchor.getScene().getWindow(),
                         account, current, lightTheme);
-        result.ifPresent(keys -> {
-            account.setDisplayEntries(keys);
+        result.ifPresent(r -> {
+            account.setDisplayEntries(r.keys());
+            account.setEntryModes(r.modes());
             if (onEntriesSaved != null) {
                 onEntriesSaved.run();
             } else {

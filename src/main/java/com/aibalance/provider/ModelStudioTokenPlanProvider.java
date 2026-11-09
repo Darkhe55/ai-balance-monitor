@@ -223,7 +223,8 @@ public final class ModelStudioTokenPlanProvider implements BalanceProvider {
         }
         BalanceSnapshot.Builder builder = BalanceSnapshot.ok(pid, accountId, accountName)
                 .label("Token Plan 剩余 Credits").currency("Credits").amount(totalSurplus);
-        if (totalValue > 0) {
+        if (totalValue > 0 && entries.size() > 1) {
+            // 多权益时显示聚合主进度条；单权益时与分项 metric 进度条重复，交给 QUOTA 区块展示
             builder.percent(totalSurplus / totalValue * 100.0);
         }
         int shown = 0;

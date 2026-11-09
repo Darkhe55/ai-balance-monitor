@@ -31,7 +31,8 @@ class MiniMaxProviderTest {
         assertEquals(68.5, snap.primaryAmount(), 1e-9);
         assertEquals("%", snap.primaryCurrency());
         assertEquals("Token Plan 额度", snap.primaryLabel());
-        assertTrue(snap.details().stream().anyMatch(l -> l.label().contains("5 小时窗口")));
+        // 5 小时窗口已作为主进度条展示，不再重复出现在文字明细
+        assertTrue(snap.details().stream().noneMatch(l -> l.label().contains("5 小时窗口")));
         assertTrue(snap.details().stream().anyMatch(l -> l.label().contains("周窗口")));
         assertTrue(snap.details().stream().anyMatch(l -> l.label().equals("5 小时重置")));
         assertTrue(snap.details().stream().anyMatch(l -> l.label().equals("周窗口重置")));

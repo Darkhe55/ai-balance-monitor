@@ -223,6 +223,9 @@ public final class ConfigStore {
                 // 「展示条目」对话框里的选择（曾经就是这样静默丢的）
                 List<String> entries = acc.getDisplayEntries();
                 copy.setDisplayEntries(entries == null ? null : new ArrayList<>(entries));
+                // 展示形式（进度条/文字）同样是用户配置，深拷贝避免每次保存静默丢失
+                java.util.Map<String, String> modes = acc.getEntryModes();
+                copy.setEntryModes(modes == null ? null : new java.util.LinkedHashMap<>(modes));
                 protectedAccounts.add(copy);
             }
             AppConfig toWrite = new AppConfig();

@@ -2,7 +2,6 @@ package com.aibalance.ui;
 
 import com.aibalance.model.AccountConfig;
 import com.aibalance.model.BalanceSnapshot;
-import com.aibalance.model.ProviderCapability;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -10,6 +9,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -30,8 +30,10 @@ import java.util.Optional;
  * 展示条目配置对话框：基于账户最近一次快照的真实数据列出可展示条目
  * （能力区块每个一行，如 MiniMax 的每个套餐窗口、OpenAI 的费用/用量/上限；
  * 明细行每个一行，如阿里百炼的每个模型配额），按能力/明细分组展示；
- * 勾选要在卡片展示的内容，条目数较少时可用上下按钮调整显示顺序。
- * 入口：账户卡片 ⋯ 菜单 →「展示条目」。保存结果写回 AccountConfig.displayEntries（条目 key 列表）。
+ * 勾选要在卡片展示的内容，并为每个条目选择展示形式（进度条/文字）。
+ * 条目数较少时可用上下按钮调整显示顺序。
+ * 入口：账户卡片 ⋯ 菜单 →「展示条目」。
+ * 保存结果写回 AccountConfig.displayEntries（可见 key 列表）与 entryModes（key → 展示形式）。
  */
 final class DisplayEntriesDialog {
 
@@ -42,29 +44,38 @@ final class DisplayEntriesDialog {
     private static final String DETAIL_GROUP_TITLE = "明细";
     private static final String DETAIL_GROUP_COLOR = "#8A8F9E";
 
+    /** 保存结果：可见条目 key 列表 + 每个可见条目的展示形式（BAR/TEXT）。 */
+    record Result(List<String> keys, Map<String, String> modes) {
+    }
+
     /** 一行可勾选条目的数据。 */
-    private record Entry(String key, String label, String value, String group, String color) {
+    private record Entry(String key, String label, String value, String group, String color,
+                         boolean isMetric, boolean barCapable) {
+    }
+
+    /** 一行可勾选条目 + 其勾选框与形式下拉框（两者状态在行间持久）。 */
+    private record Row(String key, CheckBox check, ComboBox<String> modeBox) {
     }
 
     private DisplayEntriesDialog() {
     }
 
-    /** 打开对话框；返回用户保存的有序条目 key 列表（仅勾选项），取消返回 null。 */
-    static Optional<List<String>> show(Window owner, AccountConfig account,
-                                       BalanceSnapshot snapshot, boolean light) {
-        Dialog<List<String>> dialog = buildDialog(owner, account, snapshot, light);
+    /** 打开对话框；返回用户保存的有序条目 key 列表（仅勾选项）与形式映射，取消返回 empty。 */
+    static Optional<Result> show(Window owner, AccountConfig account,
+                                 BalanceSnapshot snapshot, boolean light) {
+        Dialog<Result> dialog = buildDialog(owner, account, snapshot, light);
         return dialog == null ? Optional.empty() : dialog.showAndWait();
     }
 
     /** 非阻塞打开（供无头快照验证钩子使用）；快照无可配置条目时返回 null。 */
-    static Dialog<List<String>> showNonBlocking(Window owner, AccountConfig account,
-                                                BalanceSnapshot snapshot, boolean light) {
+    static Dialog<Result> showNonBlocking(Window owner, AccountConfig account,
+                                          BalanceSnapshot snapshot, boolean light) {
         return buildDialog(owner, account, snapshot, light);
     }
 
-    private static Dialog<List<String>> buildDialog(Window owner, AccountConfig account,
-                                                    BalanceSnapshot snapshot, boolean light) {
-        Dialog<List<String>> dialog = new Dialog<>();
+    private static Dialog<Result> buildDialog(Window owner, AccountConfig account,
+                                              BalanceSnapshot snapshot, boolean light) {
+        Dialog<Result> dialog = new Dialog<>();
         dialog.initOwner(owner);
         dialog.setTitle("展示条目 · " + account.getProviderId().getDisplayName());
         dialog.getDialogPane().getStylesheets().add(
@@ -84,10 +95,12 @@ final class DisplayEntriesDialog {
         if (snapshot != null) {
             for (BalanceSnapshot.MetricBlock m : snapshot.metrics()) {
                 entries.add(new Entry(m.key(), m.label(), formatMetricValue(m),
-                        m.capability().getLabel(), m.capability().getColor()));
+                        m.capability().getLabel(), m.capability().getColor(),
+                        true, m.percent() != null));
             }
             for (BalanceSnapshot.DetailLine d : snapshot.details()) {
-                entries.add(new Entry(d.key(), d.label(), d.value(), DETAIL_GROUP_TITLE, DETAIL_GROUP_COLOR));
+                entries.add(new Entry(d.key(), d.label(), d.value(), DETAIL_GROUP_TITLE, DETAIL_GROUP_COLOR,
+                        false, EntryFormat.canRenderBar(d.value())));
             }
         }
         if (entries.isEmpty()) {
@@ -107,7 +120,7 @@ final class DisplayEntriesDialog {
             return dialog;
         }
 
-        dialog.setHeaderText("勾选要在账户卡片展示的内容（条目来自该账户最近一次查询结果）");
+        dialog.setHeaderText("勾选要在账户卡片展示的内容；每行可选择「进度条」或「文字」形式（条目来自该账户最近一次查询结果）");
 
         // 已保存配置：key 集合 → 勾选状态（行顺序以当前快照为准；用户可再调整）
         java.util.Set<String> saved = new java.util.HashSet<>();
@@ -117,13 +130,14 @@ final class DisplayEntriesDialog {
         }
         boolean sortable = entries.size() <= MAX_SORTABLE;
 
-        // 有序条目行（key → 勾选框）；勾选状态持久，交换顺序由 swap 回调驱动
-        List<Map.Entry<String, CheckBox>> rows = new ArrayList<>();
+        // 有序条目行（key → 勾选框 + 形式下拉）；勾选/形式状态持久，交换顺序由 swap 回调驱动
+        List<Row> rows = new ArrayList<>();
         for (Entry e : entries) {
             CheckBox cb = new CheckBox();
             cb.setSelected(saved.contains(e.key()));
             cb.setTooltip(new Tooltip("勾选后在卡片展示「" + e.label() + "」"));
-            rows.add(Map.entry(e.key(), cb));
+            ComboBox<String> modeBox = buildModeBox(e, account);
+            rows.add(new Row(e.key(), cb, modeBox));
         }
 
         // 分组顺序：按首次出现（能力区块在前、明细组在后）
@@ -139,14 +153,14 @@ final class DisplayEntriesDialog {
         VBox body = new VBox(4);
         body.getStyleClass().add("display-entries");
 
-        // 交换并重建（勾选状态在 rows 中持久）；AtomicReference 持有自引用 lambda 规避"可能未初始化"
+        // 交换并重建（勾选/形式状态在 rows 中持久）；AtomicReference 持有自引用 lambda 规避"可能未初始化"
         java.util.concurrent.atomic.AtomicReference<java.util.function.BiConsumer<Integer, Integer>> swapRef =
                 new java.util.concurrent.atomic.AtomicReference<>();
         swapRef.set((i, j) -> {
             if (i < 0 || j < 0 || i >= rows.size() || j >= rows.size() || i == j) {
                 return;
             }
-            Map.Entry<String, CheckBox> tmp = rows.get(i);
+            Row tmp = rows.get(i);
             rows.set(i, rows.get(j));
             rows.set(j, tmp);
             rebuildBody(body, entries, groupOrder, groupColor, rows, sortable, swapRef.get());
@@ -158,8 +172,8 @@ final class DisplayEntriesDialog {
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scroll.setPrefViewportHeight(340);
-        scroll.setMaxHeight(420);
+        scroll.setPrefViewportHeight(360);
+        scroll.setMaxHeight(440);
         scroll.getStyleClass().add("dialog-scroll");
         dialog.getDialogPane().setContent(scroll);
 
@@ -173,22 +187,52 @@ final class DisplayEntriesDialog {
                 return null;
             }
             List<String> out = new ArrayList<>();
-            for (Map.Entry<String, CheckBox> e : rows) {
-                if (e.getValue().isSelected()) {
-                    out.add(e.getKey());
+            Map<String, String> modes = new LinkedHashMap<>();
+            for (Row r : rows) {
+                if (r.check().isSelected()) {
+                    out.add(r.key());
+                    String mode = "进度条".equals(r.modeBox().getValue())
+                            ? EntryFormat.MODE_BAR : EntryFormat.MODE_TEXT;
+                    modes.put(r.key(), mode);
                 }
             }
-            return out;
+            return new Result(out, modes);
         });
         return dialog;
     }
 
-    /** 重建列表：提示 + 分组头 + 条目行（行复用 rows 中的勾选框，保留用户勾选状态）。 */
+    /** 构建某条目的形式下拉框：进度条/文字；不可作进度条的条目禁用进度条选项。 */
+    private static ComboBox<String> buildModeBox(Entry e, AccountConfig account) {
+        ComboBox<String> box = new ComboBox<>();
+        box.getItems().addAll("进度条", "文字");
+        box.setMaxWidth(82);
+        box.setPrefWidth(82);
+        // 默认形式：已配置则按配置；否则 metric 且可作进度条默认进度条，其余默认文字
+        String savedMode = account.entryMode(e.key());
+        String selected = "文字";
+        if (savedMode != null) {
+            selected = EntryFormat.MODE_BAR.equals(savedMode) ? "进度条" : "文字";
+        } else if (e.isMetric() && e.barCapable()) {
+            selected = "进度条";
+        }
+        box.setValue(selected);
+        if (!e.barCapable()) {
+            box.getItems().remove("进度条");
+            box.setValue("文字");
+            box.setDisable(true);
+            box.setTooltip(new Tooltip("该条目无百分比数据，仅支持文字形式"));
+        } else {
+            box.setTooltip(new Tooltip("进度条：以进度条显示剩余比例；文字：仅显示数值"));
+        }
+        return box;
+    }
+
+    /** 重建列表：提示 + 分组头 + 条目行（行复用 rows 中的勾选框与形式下拉，保留用户状态）。 */
     private static void rebuildBody(VBox body,
                                     List<Entry> entries,
                                     List<String> groupOrder,
                                     Map<String, String> groupColor,
-                                    List<Map.Entry<String, CheckBox>> rows,
+                                    List<Row> rows,
                                     boolean sortable,
                                     java.util.function.BiConsumer<Integer, Integer> swapAndRebuild) {
         body.getChildren().clear();
@@ -227,22 +271,26 @@ final class DisplayEntriesDialog {
         }
     }
 
-    /** 构建一个条目行：勾选框 + 色点 + 标签 + 当前值 +（可选）排序按钮。 */
+    /** 构建一个条目行：勾选框 + 色点 + 标签 + 当前值 + 形式下拉 +（可选）排序按钮。 */
     private static HBox buildRow(Entry e,
-                                 List<Map.Entry<String, CheckBox>> rows,
+                                 List<Row> rows,
                                  boolean sortable,
                                  java.util.function.BiConsumer<Integer, Integer> swapAndRebuild) {
-        CheckBox cb = null;
-        for (Map.Entry<String, CheckBox> r : rows) {
-            if (r.getKey().equals(e.key())) {
-                cb = r.getValue();
+        Row row = null;
+        for (Row r : rows) {
+            if (r.key().equals(e.key())) {
+                row = r;
                 break;
             }
         }
-        if (cb == null) {
-            cb = new CheckBox();
+        if (row == null) {
+            CheckBox cb = new CheckBox();
             cb.setSelected(true);
-            rows.add(Map.entry(e.key(), cb));
+            ComboBox<String> box = new ComboBox<>();
+            box.getItems().addAll("进度条", "文字");
+            box.setValue("文字");
+            row = new Row(e.key(), cb, box);
+            rows.add(row);
         }
 
         Region dot = new Region();
@@ -252,19 +300,19 @@ final class DisplayEntriesDialog {
 
         Label name = new Label(e.label());
         name.getStyleClass().add("detail-label");
-        name.setMaxWidth(170);
+        name.setMaxWidth(150);
         Label value = new Label(e.value());
         value.getStyleClass().add("detail-value");
-        value.setMaxWidth(110);
+        value.setMaxWidth(90);
         value.setAlignment(Pos.CENTER_RIGHT);
 
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
-        HBox row = new HBox(8);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setPadding(new Insets(3, 4, 3, 4));
-        row.getStyleClass().add("display-entry-row");
-        row.getChildren().addAll(cb, dot, name, sp, value);
+        HBox line = new HBox(8);
+        line.setAlignment(Pos.CENTER_LEFT);
+        line.setPadding(new Insets(3, 4, 3, 4));
+        line.getStyleClass().add("display-entry-row");
+        line.getChildren().addAll(row.check(), dot, name, sp, value, row.modeBox());
         if (sortable) {
             Button up = new Button("↑");
             up.getStyleClass().add("button-ghost");
@@ -282,14 +330,14 @@ final class DisplayEntriesDialog {
                 int i = rowIndexOf(rows, e.key());
                 swapAndRebuild.accept(i, i + 1);
             });
-            row.getChildren().addAll(up, down);
+            line.getChildren().addAll(up, down);
         }
-        return row;
+        return line;
     }
 
-    private static int rowIndexOf(List<Map.Entry<String, CheckBox>> rows, String key) {
+    private static int rowIndexOf(List<Row> rows, String key) {
         for (int i = 0; i < rows.size(); i++) {
-            if (rows.get(i).getKey().equals(key)) {
+            if (rows.get(i).key().equals(key)) {
                 return i;
             }
         }

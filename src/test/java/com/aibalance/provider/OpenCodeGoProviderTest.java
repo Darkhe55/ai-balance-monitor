@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpenCodeGoProviderTest {
@@ -31,15 +31,15 @@ class OpenCodeGoProviderTest {
         // 主展示 = 最近窗口（rolling）剩余比例 100 - 23.4
         assertEquals(76.6, snap.primaryAmount(), 1e-9);
         assertEquals(76.6, snap.percent(), 1e-9);
-        assertNotNull(snap.metricOf(ProviderCapability.QUOTA));
-        assertTrue(snap.details().stream().anyMatch(d -> d.label().equals("5小时窗口")
-                && d.value().equals("剩余 76.6%")));
+        // 最近窗口已作为主进度条展示，不再重复生成 metric 与明细
+        assertNull(snap.metricOf(ProviderCapability.QUOTA));
+        assertTrue(snap.details().stream().noneMatch(d -> d.label().contains("5小时窗口")));
         assertTrue(snap.details().stream().anyMatch(d -> d.label().equals("每周窗口")
                 && d.value().equals("剩余 88.0%")));
         assertTrue(snap.details().stream().anyMatch(d -> d.label().equals("每月窗口")
                 && d.value().equals("剩余 91.5%")));
-        // 重置时间明细
-        assertTrue(snap.details().stream().anyMatch(d -> d.label().equals("5小时窗口重置")));
+        // 周/月窗口重置时间明细仍在
+        assertTrue(snap.details().stream().anyMatch(d -> d.label().equals("每周窗口重置")));
     }
 
     @Test

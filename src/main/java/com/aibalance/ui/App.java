@@ -558,7 +558,7 @@ public final class App extends Application {
                     for (int i = 0; i < 6; i++) {
                         sb.detail("模型 " + (i + 1) + "-" + (char) ('a' + i), "请求 60 次/分钟 · 用量 128k/分钟");
                     }
-                    javafx.scene.control.Dialog<java.util.List<String>> dialog =
+                    javafx.scene.control.Dialog<DisplayEntriesDialog.Result> dialog =
                             DisplayEntriesDialog.showNonBlocking(stage, acc, sb.build(), light);
                     if (dialog == null) {
                         System.err.println("SNAPSHOT_ENTRIES_NOT_AVAILABLE");
