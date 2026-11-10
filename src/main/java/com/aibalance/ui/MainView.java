@@ -322,12 +322,8 @@ public final class MainView extends BorderPane {
         themeToggle.setTooltip(new Tooltip("切换明暗模式"));
         themeToggle.setOnAction(e -> toggleTheme());
 
-        supportButton.getStyleClass().add("button-primary");
-        supportButton.setTooltip(new Tooltip("喜欢这个工具？欢迎到爱发电支持作者，让项目持续更新"));
-        supportButton.setOnAction(e -> openSupportUrl());
-
         HBox controls = new HBox(8, spinnerWrap, settingsButton,
-                themeToggle, refreshButton, supportButton, addButton, ballButton);
+                themeToggle, refreshButton, addButton, ballButton);
         controls.setAlignment(Pos.CENTER_RIGHT);
 
         HBox header = new HBox(14, titleBox, spacer, controls);
@@ -465,7 +461,11 @@ public final class MainView extends BorderPane {
         footerRight.getStyleClass().add("footer-status");
         HBox.setHgrow(refreshTimeLabel, Priority.ALWAYS);
 
-        HBox footer = new HBox(20, statusLabel, refreshTimeLabel, footerRight);
+        supportButton.getStyleClass().add("button-primary");
+        supportButton.setTooltip(new Tooltip("喜欢这个工具？欢迎到爱发电支持作者，让项目持续更新"));
+        supportButton.setOnAction(e -> openSupportUrl());
+
+        HBox footer = new HBox(20, statusLabel, refreshTimeLabel, footerRight, supportButton);
         footer.setAlignment(Pos.CENTER_LEFT);
         footer.setPadding(new Insets(11, 28, 12, 28));
         footer.getStyleClass().add("app-footer");
