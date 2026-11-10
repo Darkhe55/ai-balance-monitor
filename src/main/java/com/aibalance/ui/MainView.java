@@ -29,6 +29,9 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
+import java.awt.Desktop;
+import java.io.IOException;
+import java.net.URI;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -46,6 +49,9 @@ public final class MainView extends BorderPane {
     private static final DateTimeFormatter TIME_FMT =
             DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
 
+    /** 爱发电支持页链接（作者主页）。 */
+    private static final String SUPPORT_URL = "https://afdian.com/a/darkh";
+
     private final ConfigStore configStore;
     private final BalanceMonitor monitor;
     private final HttpSupport http;
@@ -60,6 +66,7 @@ public final class MainView extends BorderPane {
     private final Button addButton = new Button("+ 添加账户");
     private final Button ballButton = new Button("悬浮球");
     private final Button themeToggle = new Button();
+    private final Button supportButton = new Button("爱发电支持");
     private final VBox emptyState = new VBox();
     private final Label refreshTimeLabel = new Label();
 
@@ -454,11 +461,41 @@ public final class MainView extends BorderPane {
         footerRight.getStyleClass().add("footer-status");
         HBox.setHgrow(refreshTimeLabel, Priority.ALWAYS);
 
-        HBox footer = new HBox(20, statusLabel, refreshTimeLabel, footerRight);
+        supportButton.getStyleClass().add("button-ghost");
+        supportButton.setTooltip(new Tooltip("喜欢这个工具？欢迎到爱发电支持作者，让项目持续更新"));
+        supportButton.setOnAction(e -> openSupportUrl());
+
+        HBox footer = new HBox(20, statusLabel, refreshTimeLabel, footerRight, supportButton);
         footer.setAlignment(Pos.CENTER_LEFT);
         footer.setPadding(new Insets(11, 28, 12, 28));
         footer.getStyleClass().add("app-footer");
         setBottom(footer);
+    }
+
+    /** 打开爱发电支持页面（系统默认浏览器）。 */
+    private void openSupportUrl() {
+        try {
+            if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                throw new IOException("当前环境不支持自动打开浏览器");
+            }
+            Desktop.getDesktop().browse(URI.create(SUPPORT_URL));
+        } catch (IOException ex) {
+            Tooltip tip = new Tooltip("无法打开浏览器：请手动访问 " + SUPPORT_URL);
+            javafx.geometry.Point2D p = supportButton.localToScreen(0, 0);
+            if (p != null) {
+                tip.show(supportButton, p.getX(), p.getY() + supportButton.getHeight());
+            } else {
+                tip.show(supportButton, 0, 0);
+            }
+            java.util.Timer timer = new java.util.Timer();
+            timer.schedule(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    javafx.application.Platform.runLater(tip::hide);
+                    timer.cancel();
+                }
+            }, 3200);
+        }
     }
 
     // ---------------------------------------------------------- public API
